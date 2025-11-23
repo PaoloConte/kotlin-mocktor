@@ -223,26 +223,33 @@ fun tearDown() {
 
 ## Custom Content Matchers
 
-Implement the `ContentMatcher` interface to create custom body matching logic:
+Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock:
 
 ```kotlin
 import io.paoloconte.mocktor.ContentMatcher
 
-val customMatcher = object : ContentMatcher {
-    override fun matches(body: ByteArray, target: ByteArray): Boolean {
-        // Custom matching logic
-        return body.decodeToString().contains("expected")
+// Custom matcher that compares body and expected value case-insensitively
+val caseInsensitiveMatcher = object : ContentMatcher {
+    override fun matches(body: ByteArray, expected: ByteArray): Boolean {
+        return body.decodeToString().lowercase() == expected.decodeToString().lowercase()
     }
 }
 
 MockEngine.post("/api/data") {
-    body("expected content")
-    withContentMatcher(customMatcher)
+    body("HELLO WORLD")  // expected body to compare against
+    withContentMatcher(caseInsensitiveMatcher)
     respond {
         status(HttpStatusCode.OK)
     }
 }
+
+// This request will match because "hello world" equals "HELLO WORLD" case-insensitively
+client.post("/api/data") {
+    setBody("hello world")
+}
 ```
+
+Note: If you only need to validate the request body without comparing it to an expected value, use the `matching` lambda instead (see [Custom Request Matching](#custom-request-matching)).
 
 ## How It Works
 
