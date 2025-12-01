@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 
@@ -7,7 +6,7 @@ plugins {
 }
 
 group = "io.paoloconte"
-version = "1.0"
+version = "1.1"
 
 subprojects {
     group = rootProject.group
