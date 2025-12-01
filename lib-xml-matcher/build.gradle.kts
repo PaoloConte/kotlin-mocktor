@@ -9,7 +9,7 @@ dependencies {
 }
 
 mavenPublishing {
-    coordinates(project.group.toString(), "mocktor-xml-matcher", project.version.toString())
+    coordinates(project.group.toString(), "mocktor-xml", project.version.toString())
 
     pom {
         name.set("Kotlin Mocktor XML Matcher")

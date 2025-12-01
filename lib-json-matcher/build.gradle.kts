@@ -9,7 +9,7 @@ dependencies {
 }
 
 mavenPublishing {
-    coordinates(project.group.toString(), "mocktor-json-matcher", project.version.toString())
+    coordinates(project.group.toString(), "mocktor-json", project.version.toString())
 
     pom {
         name.set("Kotlin Mocktor JSON Matcher")
