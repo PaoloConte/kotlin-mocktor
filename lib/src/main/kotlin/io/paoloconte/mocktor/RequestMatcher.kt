@@ -18,49 +18,58 @@ class RequestMatcher(
     val responseContent: ((HttpRequestData) -> ByteArray)?,
 ) {
     class Builder(var method: HttpMethod, val path: String) {
-        private var matcher: ((HttpRequestData) -> Boolean)? = null
-        private var contentType: ContentType? = null
-        private var body: ByteArray? = null
-        private var contentMatcher: ContentMatcher = DefaultContentMatcher
         
+        private val request = RequestBuilder()
         private val response = ResponseBuilder()
         
-        fun contentType(contentType: ContentType) {
-            this.contentType = contentType
-        }
-        
-        fun matching(matcher: (HttpRequestData) -> Boolean) {
-            this.matcher = matcher
-        }
-        
-        fun bodyFromResource(path: String) {
-            body = this.javaClass.getResource(path)?.readBytes()
-                ?: error("Unable to load resource file '$path'")
-        }
-        
-        fun body(content: String) {
-            body = content.toByteArray(Charsets.UTF_8)
+        fun request(builder: RequestBuilder.() -> Unit) {
+            request.apply { builder() }
         }
         
         fun response(builder: ResponseBuilder.() -> Unit) {
             response.apply { builder() }
         }
-        
-        fun withContentMatcher(contentMatcher: ContentMatcher) {
-            this.contentMatcher = contentMatcher
-        }
 
         fun build(): RequestMatcher = RequestMatcher(
             path = path,
             method = method,
-            matcher = matcher,
-            contentMatcher = contentMatcher,
-            requestContentType = contentType,
-            requestContent = body,
+            matcher = request.matcher,
+            contentMatcher = request.contentMatcher,
+            requestContentType = request.contentType,
+            requestContent = request.body,
             responseStatus = response.status,
             responseContentType = response.contentType,
             responseContent = response.bodyContent,
         )
+        
+        class RequestBuilder {
+            internal var matcher: ((HttpRequestData) -> Boolean)? = null
+            internal var contentType: ContentType? = null
+            internal var body: ByteArray? = null
+            internal var contentMatcher: ContentMatcher = DefaultContentMatcher
+
+            fun contentType(contentType: ContentType) {
+                this.contentType = contentType
+            }
+
+            fun matching(matcher: (HttpRequestData) -> Boolean) {
+                this.matcher = matcher
+            }
+
+            fun bodyFromResource(path: String) {
+                body = this.javaClass.getResource(path)?.readBytes()
+                    ?: error("Unable to load resource file '$path'")
+            }
+
+            fun body(content: String) {
+                body = content.toByteArray(Charsets.UTF_8)
+            }
+
+            fun withContentMatcher(contentMatcher: ContentMatcher) {
+                this.contentMatcher = contentMatcher
+            }
+            
+        }
 
         class ResponseBuilder {
             internal var status: HttpStatusCode = HttpStatusCode.OK

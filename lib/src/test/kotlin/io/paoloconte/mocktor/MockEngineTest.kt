@@ -132,8 +132,10 @@ class MockEngineTest {
     @Test
     fun `matches request with custom matcher`() = runTest {
         MockEngine.get("/api/users") {
-            matching { request ->
-                request.url.parameters["id"] == "123"
+            request {
+                matching { request ->
+                    request.url.parameters["id"] == "123"
+                }
             }
             response {
                 status(HttpStatusCode.OK)
@@ -150,8 +152,10 @@ class MockEngineTest {
     @Test
     fun `does not match when custom matcher fails`() = runTest {
         MockEngine.get("/api/users") {
-            matching { request ->
-                request.url.parameters["id"] == "123"
+            request {
+                matching { request ->
+                    request.url.parameters["id"] == "123"
+                }
             }
             response {
                 status(HttpStatusCode.OK)
@@ -167,7 +171,9 @@ class MockEngineTest {
     @Test
     fun `matches request with body content`() = runTest {
         MockEngine.post("/api/users") {
-            body("""{"name": "test"}""")
+            request {
+                body("""{"name": "test"}""")
+            }
             response {
                 status(HttpStatusCode.Created)
             }
@@ -183,7 +189,9 @@ class MockEngineTest {
     @Test
     fun `does not match when body differs`() = runTest {
         MockEngine.post("/api/users") {
-            body("""{"name": "test"}""")
+            request {
+                body("""{"name": "test"}""")
+            }
             response {
                 status(HttpStatusCode.Created)
             }
@@ -252,9 +260,11 @@ class MockEngineTest {
     @Test
     fun `matches request body containing specific json field using matching`() = runTest {
         MockEngine.post("/api/users") {
-            matching { request ->
-                val body = request.bodyAsString()
-                body.contains("\"role\"") && body.contains("\"admin\"")
+            request {
+                matching { request ->
+                    val body = request.bodyAsString()
+                    body.contains("\"role\"") && body.contains("\"admin\"")
+                }
             }
             response {
                 status(HttpStatusCode.OK)
@@ -274,9 +284,11 @@ class MockEngineTest {
     @Test
     fun `does not match request body missing required json field using matching`() = runTest {
         MockEngine.post("/api/users") {
-            matching { request ->
-                val body = request.bodyAsString()
-                body.contains("\"role\"") && body.contains("\"admin\"")
+            request {
+                matching { request ->
+                    val body = request.bodyAsString()
+                    body.contains("\"role\"") && body.contains("\"admin\"")
+                }
             }
             response {
                 status(HttpStatusCode.OK)
@@ -294,7 +306,9 @@ class MockEngineTest {
     @Test
     fun `matches request body from resource file`() = runTest {
         MockEngine.post("/api/users") {
-            bodyFromResource("/fixtures/request.json")
+            request {
+                bodyFromResource("/fixtures/request.json")
+            }
             response {
                 status(HttpStatusCode.Created)
                 bodyFromResource("/fixtures/response.json")

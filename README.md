@@ -73,7 +73,9 @@ Match exact request body content:
 
 ```kotlin
 MockEngine.post("/api/users") {
-    body("""{"name": "John"}""")
+    request {
+        body("""{"name": "John"}""")
+    }
     response {
         status(HttpStatusCode.Created)
     }
@@ -86,8 +88,10 @@ Use `matching` for custom request validation:
 
 ```kotlin
 MockEngine.get("/api/users") {
-    matching { request ->
-        request.url.parameters["id"] == "123"
+    request {
+        matching { request ->
+            request.url.parameters["id"] == "123"
+        }
     }
     response {
         status(HttpStatusCode.OK)
@@ -97,9 +101,11 @@ MockEngine.get("/api/users") {
 
 // Match based on request body content
 MockEngine.post("/api/users") {
-    matching { request ->
-        val body = request.bodyAsString()
-        body.contains("\"role\":\"admin\"")
+    request {
+        matching { request ->
+            val body = request.bodyAsString()
+            body.contains("\"role\":\"admin\"")
+        }
     }
     response {
         status(HttpStatusCode.OK)
@@ -115,7 +121,9 @@ Use the JSON matcher for semantic JSON comparison (ignores key ordering and whit
 import io.paoloconte.mocktor.json.jsonBody
 
 MockEngine.post("/api/users") {
-    jsonBody("""{"name": "John", "age": 30}""")
+    request {
+        jsonBody("""{"name": "John", "age": 30}""")
+    }
     response {
         status(HttpStatusCode.Created)
     }
@@ -135,7 +143,9 @@ Use the XML matcher for semantic XML comparison (ignores whitespace and comments
 import io.paoloconte.mocktor.xml.xmlBody
 
 MockEngine.post("/api/data") {
-    xmlBody("<root><item>value</item></root>")
+    request {
+        xmlBody("<root><item>value</item></root>")
+    }
     response {
         status(HttpStatusCode.OK)
     }
@@ -169,7 +179,9 @@ Load request or response body from classpath resource files:
 
 ```kotlin
 MockEngine.post("/api/users") {
-    bodyFromResource("/fixtures/request.json")
+    request {
+        bodyFromResource("/fixtures/request.json")
+    }
     response {
         bodyFromResource("/fixtures/response.json")
     }
@@ -184,7 +196,9 @@ Use `jsonBodyFromResource` to load JSON from a resource file and use semantic JS
 import io.paoloconte.mocktor.json.jsonBodyFromResource
 
 MockEngine.post("/api/users") {
-    jsonBodyFromResource("/fixtures/request.json")
+    request {
+        jsonBodyFromResource("/fixtures/request.json")
+    }
     response {
         status(HttpStatusCode.Created)
     }
@@ -201,7 +215,9 @@ Use `xmlBodyFromResource` to load XML from a resource file and use semantic XML 
 import io.paoloconte.mocktor.xml.xmlBodyFromResource
 
 MockEngine.post("/api/data") {
-    xmlBodyFromResource("/fixtures/request.xml")
+    request {
+        xmlBodyFromResource("/fixtures/request.xml")
+    }
     response {
         status(HttpStatusCode.OK)
     }
@@ -236,8 +252,10 @@ val caseInsensitiveMatcher = object : ContentMatcher {
 }
 
 MockEngine.post("/api/data") {
-    body("HELLO WORLD")  // expected body to compare against
-    withContentMatcher(caseInsensitiveMatcher)
+    request {
+        body("HELLO WORLD")  // expected body to compare against
+        withContentMatcher(caseInsensitiveMatcher)
+    }
     response {
         status(HttpStatusCode.OK)
     }
