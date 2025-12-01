@@ -5,7 +5,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
-import io.ktor.http.encodedPath
 
 class RequestMatcher(
     val method: HttpMethod,
@@ -43,7 +42,7 @@ class RequestMatcher(
             body = content.toByteArray(Charsets.UTF_8)
         }
         
-        fun respond(builder: ResponseBuilder.() -> Unit) {
+        fun response(builder: ResponseBuilder.() -> Unit) {
             response.apply { builder() }
         }
         

@@ -27,7 +27,7 @@ class MockEngineTest {
     @Test
     fun `matches GET request by path`() = runTest {
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("""{"users": []}""")
             }
@@ -43,7 +43,7 @@ class MockEngineTest {
     @Test
     fun `matches POST request`() = runTest {
         MockEngine.post("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
@@ -60,7 +60,7 @@ class MockEngineTest {
     @Test
     fun `matches PUT request`() = runTest {
         MockEngine.put("/api/users/1") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("""{"updated": true}""")
             }
@@ -75,7 +75,7 @@ class MockEngineTest {
     @Test
     fun `matches DELETE request`() = runTest {
         MockEngine.delete("/api/users/1") {
-            respond {
+            response {
                 status(HttpStatusCode.NoContent)
             }
         }
@@ -89,7 +89,7 @@ class MockEngineTest {
     @Test
     fun `matches PATCH request`() = runTest {
         MockEngine.patch("/api/users/1") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("""{"patched": true}""")
             }
@@ -104,7 +104,7 @@ class MockEngineTest {
     @Test
     fun `returns 404 when path does not match`() = runTest {
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -118,7 +118,7 @@ class MockEngineTest {
     @Test
     fun `returns 404 when method does not match`() = runTest {
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -135,7 +135,7 @@ class MockEngineTest {
             matching { request ->
                 request.url.parameters["id"] == "123"
             }
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("""{"id": 123}""")
             }
@@ -153,7 +153,7 @@ class MockEngineTest {
             matching { request ->
                 request.url.parameters["id"] == "123"
             }
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -168,7 +168,7 @@ class MockEngineTest {
     fun `matches request with body content`() = runTest {
         MockEngine.post("/api/users") {
             body("""{"name": "test"}""")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }
@@ -184,7 +184,7 @@ class MockEngineTest {
     fun `does not match when body differs`() = runTest {
         MockEngine.post("/api/users") {
             body("""{"name": "test"}""")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }
@@ -199,7 +199,7 @@ class MockEngineTest {
     @Test
     fun `clears handlers`() = runTest {
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -215,13 +215,13 @@ class MockEngineTest {
     @Test
     fun `first matching handler wins`() = runTest {
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("first")
             }
         }
         MockEngine.get("/api/users") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("second")
             }
@@ -236,7 +236,7 @@ class MockEngineTest {
     @Test
     fun `response has correct content type`() = runTest {
         MockEngine.get("/api/data") {
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 contentType(ContentType.Application.Xml)
                 body("<data/>")
@@ -256,7 +256,7 @@ class MockEngineTest {
                 val body = request.bodyAsString()
                 body.contains("\"role\"") && body.contains("\"admin\"")
             }
-            respond {
+            response {
                 status(HttpStatusCode.OK)
                 body("""{"granted": true}""")
             }
@@ -278,7 +278,7 @@ class MockEngineTest {
                 val body = request.bodyAsString()
                 body.contains("\"role\"") && body.contains("\"admin\"")
             }
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -295,7 +295,7 @@ class MockEngineTest {
     fun `matches request body from resource file`() = runTest {
         MockEngine.post("/api/users") {
             bodyFromResource("/fixtures/request.json")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
                 bodyFromResource("/fixtures/response.json")
             }

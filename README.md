@@ -52,7 +52,7 @@ val client = HttpClient(MockEngineFactory)
 ```kotlin
 // Mock a GET request
 MockEngine.get("/api/users") {
-    respond {
+    response {
         status(HttpStatusCode.OK)
         body("""{"users": []}""")
     }
@@ -60,7 +60,7 @@ MockEngine.get("/api/users") {
 
 // Mock a POST request
 MockEngine.post("/api/users") {
-    respond {
+    response {
         status(HttpStatusCode.Created)
         body("""{"id": 1}""")
     }
@@ -74,7 +74,7 @@ Match exact request body content:
 ```kotlin
 MockEngine.post("/api/users") {
     body("""{"name": "John"}""")
-    respond {
+    response {
         status(HttpStatusCode.Created)
     }
 }
@@ -89,7 +89,7 @@ MockEngine.get("/api/users") {
     matching { request ->
         request.url.parameters["id"] == "123"
     }
-    respond {
+    response {
         status(HttpStatusCode.OK)
         body("""{"id": 123, "name": "John"}""")
     }
@@ -101,7 +101,7 @@ MockEngine.post("/api/users") {
         val body = request.bodyAsString()
         body.contains("\"role\":\"admin\"")
     }
-    respond {
+    response {
         status(HttpStatusCode.OK)
     }
 }
@@ -116,7 +116,7 @@ import io.paoloconte.mocktor.json.jsonBody
 
 MockEngine.post("/api/users") {
     jsonBody("""{"name": "John", "age": 30}""")
-    respond {
+    response {
         status(HttpStatusCode.Created)
     }
 }
@@ -136,7 +136,7 @@ import io.paoloconte.mocktor.xml.xmlBody
 
 MockEngine.post("/api/data") {
     xmlBody("<root><item>value</item></root>")
-    respond {
+    response {
         status(HttpStatusCode.OK)
     }
 }
@@ -155,7 +155,7 @@ client.post("/api/data") {
 
 ```kotlin
 MockEngine.get("/api/data") {
-    respond {
+    response {
         status(HttpStatusCode.OK)
         contentType(ContentType.Application.Xml)
         body("<data/>")
@@ -170,7 +170,7 @@ Load request or response body from classpath resource files:
 ```kotlin
 MockEngine.post("/api/users") {
     bodyFromResource("/fixtures/request.json")
-    respond {
+    response {
         bodyFromResource("/fixtures/response.json")
     }
 }
@@ -185,7 +185,7 @@ import io.paoloconte.mocktor.json.jsonBodyFromResource
 
 MockEngine.post("/api/users") {
     jsonBodyFromResource("/fixtures/request.json")
-    respond {
+    response {
         status(HttpStatusCode.Created)
     }
 }
@@ -202,7 +202,7 @@ import io.paoloconte.mocktor.xml.xmlBodyFromResource
 
 MockEngine.post("/api/data") {
     xmlBodyFromResource("/fixtures/request.xml")
-    respond {
+    response {
         status(HttpStatusCode.OK)
     }
 }
@@ -238,7 +238,7 @@ val caseInsensitiveMatcher = object : ContentMatcher {
 MockEngine.post("/api/data") {
     body("HELLO WORLD")  // expected body to compare against
     withContentMatcher(caseInsensitiveMatcher)
-    respond {
+    response {
         status(HttpStatusCode.OK)
     }
 }

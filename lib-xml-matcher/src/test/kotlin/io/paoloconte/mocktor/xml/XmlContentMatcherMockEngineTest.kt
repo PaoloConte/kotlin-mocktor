@@ -23,7 +23,7 @@ class XmlContentMatcherMockEngineTest {
     fun `matches XML body with different whitespace`() = runTest {
         MockEngine.post("/api/data") {
             xmlBody("<root><item>value</item></root>")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }
@@ -43,7 +43,7 @@ class XmlContentMatcherMockEngineTest {
     fun `does not match XML body with different values`() = runTest {
         MockEngine.post("/api/data") {
             xmlBody("<root><item>expected</item></root>")
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -59,7 +59,7 @@ class XmlContentMatcherMockEngineTest {
     fun `matches XML body from resource file with different whitespace`() = runTest {
         MockEngine.post("/api/users") {
             xmlBodyFromResource("/fixtures/request.xml")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }

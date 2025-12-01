@@ -23,7 +23,7 @@ class JsonContentMatcherMockEngineTest {
     fun `matches JSON body with different key order`() = runTest {
         MockEngine.post("/api/users") {
             jsonBody("""{"name": "John", "age": 30}""")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }
@@ -39,7 +39,7 @@ class JsonContentMatcherMockEngineTest {
     fun `does not match JSON body with different values`() = runTest {
         MockEngine.post("/api/users") {
             jsonBody("""{"name": "John", "age": 30}""")
-            respond {
+            response {
                 status(HttpStatusCode.OK)
             }
         }
@@ -55,7 +55,7 @@ class JsonContentMatcherMockEngineTest {
     fun `matches JSON body from resource file with different key order`() = runTest {
         MockEngine.post("/api/users") {
             jsonBodyFromResource("/fixtures/request.json")
-            respond {
+            response {
                 status(HttpStatusCode.Created)
             }
         }
