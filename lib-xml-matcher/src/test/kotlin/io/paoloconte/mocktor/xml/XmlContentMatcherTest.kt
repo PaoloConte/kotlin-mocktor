@@ -2,6 +2,7 @@ package io.paoloconte.mocktor.xml
 
 import io.paoloconte.mocktor.MatchResult
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertIs
 
 class XmlContentMatcherTest {
@@ -43,7 +44,9 @@ class XmlContentMatcherTest {
     fun `does not match XML with different values`() {
         val body = "<root><item>value1</item></root>"
         val target = "<root><item>value2</item></root>"
-        assertIs<MatchResult.Mismatch>(matcher.matches(body.toByteArray(), target.toByteArray()))
+        val result = matcher.matches(body.toByteArray(), target.toByteArray())
+        assertIs<MatchResult.Mismatch>(result)
+        assertContains(result.reason, "Expected text value 'value1' but was 'value2'")
     }
 
     @Test
@@ -69,15 +72,15 @@ class XmlContentMatcherTest {
 
     @Test
     fun `matches XML with attributes`() {
-        val body = """<root attr="value"><item>text</item></root>"""
-        val target = """<root attr="value"><item>text</item></root>"""
+        val body = """<root><item attr="value">text</item></root>"""
+        val target = """<root><item attr="value">text</item></root>"""
         assertIs<MatchResult.Match>(matcher.matches(body.toByteArray(), target.toByteArray()))
     }
 
     @Test
     fun `does not match XML with different attributes`() {
-        val body = """<root attr="value1"><item>text</item></root>"""
-        val target = """<root attr="value2"><item>text</item></root>"""
+        val body = """<root><item attr="value1">text</item></root>"""
+        val target = """<root><item attr="value2">text</item></root>"""
         assertIs<MatchResult.Mismatch>(matcher.matches(body.toByteArray(), target.toByteArray()))
     }
 }

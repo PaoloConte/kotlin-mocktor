@@ -15,8 +15,7 @@ object XmlContentMatcher: ContentMatcher {
                 .ignoreComments()
                 .normalizeWhitespace()
                 .withNodeMatcher(
-                    DefaultNodeMatcher(
-                        ElementSelectors.and(ElementSelectors.byNameAndText, ElementSelectors.byNameAndAllAttributes))
+                    DefaultNodeMatcher(ElementSelectors.byName)
                 )
                 .checkForSimilar()
                 .build()
