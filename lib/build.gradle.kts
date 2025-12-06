@@ -5,6 +5,8 @@ dependencies {
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    implementation(libs.slf4j.api)
+    testImplementation(libs.slf4j.simple)
 }
 
 

@@ -6,6 +6,8 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.core)
+    implementation(libs.slf4j.api)
+    testImplementation(libs.slf4j.simple)
 }
 
 mavenPublishing {

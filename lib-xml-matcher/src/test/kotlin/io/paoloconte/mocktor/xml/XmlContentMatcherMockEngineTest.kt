@@ -2,7 +2,6 @@ package io.paoloconte.mocktor.xml
 
 import io.ktor.client.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.paoloconte.mocktor.MockEngine
 import io.paoloconte.mocktor.MockEngineFactory
@@ -58,7 +57,6 @@ class XmlContentMatcherMockEngineTest {
             setBody("<root><item>different</item></root>")
         }
         assertEquals(HttpStatusCode.NotFound, response.status)
-        println(response.bodyAsText())
     }
 
     @Test

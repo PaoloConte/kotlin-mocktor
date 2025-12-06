@@ -2,7 +2,6 @@ package io.paoloconte.mocktor.json
 
 import io.ktor.client.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.paoloconte.mocktor.MockEngine
 import io.paoloconte.mocktor.MockEngineFactory
@@ -54,7 +53,6 @@ class JsonContentMatcherMockEngineTest {
             setBody("""{"name": "John", "age": 25}""")
         }
         assertEquals(HttpStatusCode.NotFound, response.status)
-        println(response.bodyAsText())
     }
 
     @Test

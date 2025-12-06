@@ -7,8 +7,11 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.util.date.*
 import io.ktor.utils.io.*
+import org.slf4j.LoggerFactory
 
 object MockEngine: HttpClientEngineBase("mock-engine") {
+    private val logger = LoggerFactory.getLogger(MockEngine::class.java)
+
     override val config: HttpClientEngineConfig = object : HttpClientEngineConfig() {}
 
     override val supportedCapabilities: Set<HttpClientEngineCapability<out Any>> = setOf(
@@ -49,11 +52,13 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     @InternalAPI
     override suspend fun execute(data: HttpRequestData): HttpResponseData {
+        logger.trace("Handling request: {} {}", data.method, data.url)
         val mismatchDescriptions = mutableListOf<String>()
 
         for (matcher in handlers) {
             when (val result = matcher.matches(data)) {
                 is MatchResult.Match -> {
+                    logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
                     return HttpResponseData(
                         statusCode = matcher.responseStatus,
                         requestTime = GMTDate(),
@@ -69,11 +74,13 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
             }
         }
 
+        logger.trace("No matching handler found for: {} {}", data.method, data.url)
         val sb = StringBuilder("No matching handler found. Registered handlers:\n")
         handlers.forEachIndexed { index, handler ->
             sb.append("${index + 1}. [${handler.method} ${handler.path}] -> ${mismatchDescriptions[index]}\n")
         }
         val mismatchReport = sb.toString()
+        logger.error(mismatchReport)
 
         return HttpResponseData(
             statusCode = noMatchStatusCode,

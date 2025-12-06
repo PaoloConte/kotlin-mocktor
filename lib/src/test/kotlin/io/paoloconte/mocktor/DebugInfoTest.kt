@@ -32,7 +32,6 @@ class DebugInfoTest {
         
         assertEquals(HttpStatusCode.NotFound, response.status)
         val body = response.bodyAsText()
-        println(body) // For debugging the test itself
         
         assertTrue(body.contains("No matching handler found"))
         assertTrue(body.contains("1. [GET /api/users] -> Path mismatch"))
