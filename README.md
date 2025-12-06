@@ -23,13 +23,13 @@ Add the dependencies to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    testImplementation("io.paoloconte:mocktor:1.2")
+    testImplementation("io.paoloconte:mocktor:1.2.1")
 
     // Optional: JSON body matching
-    testImplementation("io.paoloconte:mocktor-json:1.2")
+    testImplementation("io.paoloconte:mocktor-json:1.2.1")
 
     // Optional: XML body matching
-    testImplementation("io.paoloconte:mocktor-xml:1.2")
+    testImplementation("io.paoloconte:mocktor-xml:1.2.1")
 }
 ```
 
@@ -297,7 +297,8 @@ MockEngine.noMatchStatusCode = HttpStatusCode.BadRequest
 
  If no handler matches a request, MockEngine returns a response with `noMatchStatusCode` (default 404 Not Found) 
  containing a detailed report in the body explaining why each registered handler failed to match, identifying the 
- mismatch reason (e.g., incorrect path, method, headers, or body content). 
+ mismatch reason (e.g., incorrect path, method, headers, or body content).  
+ The same information is also logged via slf4j.
  
  ## License
  

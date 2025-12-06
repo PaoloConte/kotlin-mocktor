@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.paoloconte"
-version = "1.2"
+version = "1.2.1"
 
 subprojects {
     group = rootProject.group
