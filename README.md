@@ -238,45 +238,56 @@ fun tearDown() {
 ```
 
 ## Custom Content Matchers
-
-Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock:
-
-```kotlin
-import io.paoloconte.mocktor.ContentMatcher
-
-// Custom matcher that compares body and expected value case-insensitively
-val caseInsensitiveMatcher = object : ContentMatcher {
-    override fun matches(body: ByteArray, expected: ByteArray): Boolean {
-        return body.decodeToString().lowercase() == expected.decodeToString().lowercase()
-    }
-}
-
-MockEngine.post("/api/data") {
-    request {
-        body("HELLO WORLD")  // expected body to compare against
-        withContentMatcher(caseInsensitiveMatcher)
-    }
-    response {
-        status(HttpStatusCode.OK)
-    }
-}
-
-// This request will match because "hello world" equals "HELLO WORLD" case-insensitively
-client.post("/api/data") {
-    setBody("hello world")
-}
-```
-
-Note: If you only need to validate the request body without comparing it to an expected value, use the `matching` lambda instead (see [Custom Request Matching](#custom-request-matching)).
-
-## How It Works
-
-1. Register mock handlers using `MockEngine.get()`, `MockEngine.post()`, etc.
-2. Each handler specifies a path and optional matching criteria
-3. When the HTTP client makes a request, MockEngine iterates through handlers
-4. The first matching handler returns its configured response
-5. If no handler matches, a 404 Not Found response is returned
-
-## License
-
-MIT
+ 
+ Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock.
+ 
+ ```kotlin
+ import io.paoloconte.mocktor.ContentMatcher
+ import io.paoloconte.mocktor.MatchResult
+ 
+ // Custom matcher that compares body and expected value case-insensitively
+ val caseInsensitiveMatcher = object : ContentMatcher {
+     override fun matches(body: ByteArray, expected: ByteArray): MatchResult {
+         val bodyString = body.decodeToString().lowercase()
+         val expectedString = expected.decodeToString().lowercase()
+         
+         return if (bodyString == expectedString) 
+            MatchResult.Match 
+         else 
+            MatchResult.Mismatch("Body mismatch: expected '$expectedString' but got '$bodyString'")
+     }
+ }
+ 
+ MockEngine.post("/api/data") {
+     request {
+         body("HELLO WORLD")  // expected body to compare against
+         withContentMatcher(caseInsensitiveMatcher)
+     }
+     response {
+         status(HttpStatusCode.OK)
+     }
+ }
+ 
+ // This request will match because "hello world" equals "HELLO WORLD" case-insensitively
+ client.post("/api/data") {
+     setBody("hello world")
+ }
+ ```
+ 
+ Note: If you only need to validate the request body without comparing it to an expected value, use the `matching` lambda instead (see [Custom Request Matching](#custom-request-matching)).
+ 
+ ## How It Works
+ 
+ 1. Register mock handlers using `MockEngine.get()`, `MockEngine.post()`, etc.
+ 2. Each handler specifies a path and optional matching criteria
+ 3. When the HTTP client makes a request, MockEngine iterates through handlers
+ 4. The first matching handler returns its configured response
+ 5. If no handler matches, a 404 Not Found response is returned
+ 
+ ### Debugging Mismatches
+ 
+ If no handler matches a request, MockEngine returns a 404 response with a detailed report in the body explaining why each registered handler failed to match, identifying the mismatch reason (e.g., incorrect path, method, headers, or body content). This significantly simplifies debugging when tests fail unexpectedly.
+ 
+ ## License
+ 
+ MIT

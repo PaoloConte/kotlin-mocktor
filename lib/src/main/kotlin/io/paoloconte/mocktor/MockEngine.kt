@@ -47,24 +47,37 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     @InternalAPI
     override suspend fun execute(data: HttpRequestData): HttpResponseData {
+        val mismatchDescriptions = mutableListOf<String>()
+
         for (matcher in handlers) {
-            if (matcher.matches(data)) {
-                return HttpResponseData(
-                    statusCode = matcher.responseStatus,
-                    requestTime = GMTDate(),
-                    headers = headersOf("Content-Type", matcher.responseContentType.toString()),
-                    body = ByteReadChannel(matcher.responseContent?.invoke(data) ?: ByteArray(0)),
-                    version = HttpProtocolVersion.HTTP_1_1,
-                    callContext = callContext(),
-                )
+            when (val result = matcher.matches(data)) {
+                is MatchResult.Match -> {
+                    return HttpResponseData(
+                        statusCode = matcher.responseStatus,
+                        requestTime = GMTDate(),
+                        headers = headersOf("Content-Type", matcher.responseContentType.toString()),
+                        body = ByteReadChannel(matcher.responseContent?.invoke(data) ?: ByteArray(0)),
+                        version = HttpProtocolVersion.HTTP_1_1,
+                        callContext = callContext(),
+                    )
+                }
+                is MatchResult.Mismatch -> {
+                    mismatchDescriptions.add(result.reason)
+                }
             }
         }
+
+        val sb = StringBuilder("No matching handler found. Registered handlers:\n")
+        handlers.forEachIndexed { index, handler ->
+            sb.append("${index + 1}. [${handler.method} ${handler.path}] -> ${mismatchDescriptions[index]}\n")
+        }
+        val mismatchReport = sb.toString()
 
         return HttpResponseData(
             statusCode = HttpStatusCode.NotFound,
             requestTime = GMTDate(),
             headers = headersOf(),
-            body = ByteReadChannel(ByteArray(0)),
+            body = ByteReadChannel(mismatchReport.toByteArray()),
             version = HttpProtocolVersion.HTTP_1_1,
             callContext = callContext(),
         )

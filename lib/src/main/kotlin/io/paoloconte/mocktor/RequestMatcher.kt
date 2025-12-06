@@ -1,10 +1,10 @@
 package io.paoloconte.mocktor
 
-import io.ktor.client.request.HttpRequestData
-import io.ktor.http.ContentType
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.OutgoingContent
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.http.content.*
+import io.paoloconte.mocktor.MatchResult.Match
+import io.paoloconte.mocktor.MatchResult.Mismatch
 
 class RequestMatcher(
     val method: HttpMethod,
@@ -103,17 +103,25 @@ class RequestMatcher(
         }
     }
 
-    fun matches(data: HttpRequestData) : Boolean {
-        if (method != data.method) return false
-        if (path != data.url.encodedPath) return false
-        if (requestContentType != null && requestContentType != data.body.contentType) return false
-        if (matcher != null && !matcher(data)) return false
+    fun matches(data: HttpRequestData): MatchResult {
+        if (method != data.method) 
+            return Mismatch("Method mismatch: expected $method but was ${data.method}")
+        
+        if (path != data.url.encodedPath) 
+            return Mismatch("Path mismatch: expected $path but was ${data.url.encodedPath}")
+        
+        if (requestContentType != null && requestContentType != data.body.contentType) 
+            return Mismatch("Content-Type mismatch: expected $requestContentType but was ${data.body.contentType}")
+        
+        if (matcher != null && !matcher(data)) 
+            return Mismatch("Custom matcher failed")
+        
         if (requestContent != null) {
-            val body = (data.body as? OutgoingContent.ByteArrayContent)?.bytes() ?: return false
-            val match = contentMatcher.matches(body, requestContent)
-            if (!match) return false
+            val body = (data.body as? OutgoingContent.ByteArrayContent)?.bytes() ?: return Mismatch("Body mismatch: request body is not available as ByteArray")
+            return contentMatcher.matches(body, requestContent)
         }
-        return true
+        
+        return Match
     }
     
 }
