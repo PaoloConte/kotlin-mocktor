@@ -18,6 +18,8 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
     )
 
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
+    
+    var noMatchStatusCode: HttpStatusCode = HttpStatusCode.NotFound
 
     fun clear() = handlers.clear()
 
@@ -74,7 +76,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         val mismatchReport = sb.toString()
 
         return HttpResponseData(
-            statusCode = HttpStatusCode.NotFound,
+            statusCode = noMatchStatusCode,
             requestTime = GMTDate(),
             headers = headersOf(),
             body = ByteReadChannel(mismatchReport.toByteArray()),

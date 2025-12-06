@@ -237,6 +237,15 @@ fun tearDown() {
 }
 ```
 
+### Default Response Status
+
+By default, MockEngine returns a `404 Not Found` when no handler matches a request. You can customize this status code:
+
+```kotlin
+// Change the default status code for unmatched requests
+MockEngine.noMatchStatusCode = HttpStatusCode.BadRequest
+```
+
 ## Custom Content Matchers
  
  Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock.
@@ -282,11 +291,13 @@ fun tearDown() {
  2. Each handler specifies a path and optional matching criteria
  3. When the HTTP client makes a request, MockEngine iterates through handlers
  4. The first matching handler returns its configured response
- 5. If no handler matches, a 404 Not Found response is returned
- 
+ 5. If no handler matches, a response with `noMatchStatusCode` (default 404 Not Found) is returned
+
  ### Debugging Mismatches
- 
- If no handler matches a request, MockEngine returns a 404 response with a detailed report in the body explaining why each registered handler failed to match, identifying the mismatch reason (e.g., incorrect path, method, headers, or body content). This significantly simplifies debugging when tests fail unexpectedly.
+
+ If no handler matches a request, MockEngine returns a response with `noMatchStatusCode` (default 404 Not Found) 
+ containing a detailed report in the body explaining why each registered handler failed to match, identifying the 
+ mismatch reason (e.g., incorrect path, method, headers, or body content). 
  
  ## License
  
