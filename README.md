@@ -226,6 +226,29 @@ MockEngine.post("/api/data") {
 // Matches even if request has different whitespace than the resource file
 ```
 
+### State Management
+MockEngine supports state-based request matching. This allows you to simulate stateful interactions (e.g., authentication flows):
+
+```kotlin
+// Handler matches only if engine state is "INITIAL_STATE" (default)
+MockEngine.post("/login") {
+    withState(MockEngine.INITIAL_STATE)
+    response {
+        status(HttpStatusCode.OK)
+        setState("LOGGED_IN") // Transition to new state
+    }
+}
+
+// Handler matches only if engine state is "LOGGED_IN"
+MockEngine.get("/profile") {
+    withState("LOGGED_IN")
+    response {
+        status(HttpStatusCode.OK)
+        body("User Profile")
+    }
+}
+```
+
 ### Clearing Handlers
 
 Clear all registered handlers between tests:

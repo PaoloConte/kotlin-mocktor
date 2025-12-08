@@ -16,11 +16,17 @@ class RequestMatcher(
     val responseStatus: HttpStatusCode,
     val responseContentType: ContentType,
     val responseContent: ((HttpRequestData) -> ByteArray)?,
+    val expectedState: String?,
+    val setState: String?,
 ) {
     class Builder(var method: HttpMethod, val path: String) {
         
         private val request = RequestBuilder()
         private val response = ResponseBuilder()
+        
+        fun withState(state: String) {
+            request.expectedState = state
+        }
         
         fun request(builder: RequestBuilder.() -> Unit) {
             request.apply { builder() }
@@ -40,6 +46,8 @@ class RequestMatcher(
             responseStatus = response.status,
             responseContentType = response.contentType,
             responseContent = response.bodyContent,
+            expectedState = request.expectedState,
+            setState = response.newState,
         )
         
         class RequestBuilder {
@@ -47,6 +55,7 @@ class RequestMatcher(
             internal var contentType: ContentType? = null
             internal var body: ByteArray? = null
             internal var contentMatcher: ContentMatcher = DefaultContentMatcher
+            internal var expectedState: String? = null
 
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
@@ -75,6 +84,11 @@ class RequestMatcher(
             internal var status: HttpStatusCode = HttpStatusCode.OK
             internal var contentType: ContentType = ContentType.Application.Json
             internal var bodyContent: ((HttpRequestData) -> ByteArray)? = null
+            internal var newState: String? = null
+            
+            fun setState(state: String) {
+                newState = state
+            }
             
             fun status(status: HttpStatusCode) {
                 this.status = status
@@ -103,7 +117,11 @@ class RequestMatcher(
         }
     }
 
-    fun matches(data: HttpRequestData): MatchResult {
+    fun matches(data: HttpRequestData, currentState: String? = null): MatchResult {
+        if (expectedState != null && expectedState != currentState) {
+            return Mismatch("State mismatch: expected $expectedState but was $currentState")
+        }
+
         if (method != data.method) 
             return Mismatch("Method mismatch: expected $method but was ${data.method}")
         

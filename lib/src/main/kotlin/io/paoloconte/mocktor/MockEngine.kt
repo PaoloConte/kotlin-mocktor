@@ -10,7 +10,6 @@ import io.ktor.utils.io.*
 import org.slf4j.LoggerFactory
 
 object MockEngine: HttpClientEngineBase("mock-engine") {
-    private val logger = LoggerFactory.getLogger(MockEngine::class.java)
 
     override val config: HttpClientEngineConfig = object : HttpClientEngineConfig() {}
 
@@ -20,11 +19,18 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         WebSocketExtensionsCapability
     )
 
+    private val logger = LoggerFactory.getLogger(MockEngine::class.java)
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
     
     var noMatchStatusCode: HttpStatusCode = HttpStatusCode.NotFound
 
-    fun clear() = handlers.clear()
+    const val INITIAL_STATE = "INITIAL_STATE"
+    internal var state: String = INITIAL_STATE
+
+    fun clear() {
+        handlers.clear()
+        state = INITIAL_STATE
+    }
 
     fun get(path: String, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Get, path).apply {  builder() }.build())
@@ -56,8 +62,11 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         val mismatchDescriptions = mutableListOf<String>()
 
         for (matcher in handlers) {
-            when (val result = matcher.matches(data)) {
+            when (val result = matcher.matches(data, state)) {
                 is MatchResult.Match -> {
+                    if (matcher.setState != null) {
+                        state = matcher.setState
+                    }
                     logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
                     return HttpResponseData(
                         statusCode = matcher.responseStatus,
