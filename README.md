@@ -443,6 +443,7 @@ By default, MockEngine returns a `404 Not Found` when no handler matches a reque
 // Change the default status code for unmatched requests
 MockEngine.noMatchStatusCode = HttpStatusCode.BadRequest
 ```
+This field resets if `clear()` is called.
 
 ## Custom Content Matchers
 

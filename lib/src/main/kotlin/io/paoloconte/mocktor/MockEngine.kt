@@ -27,8 +27,8 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
     private val logger = LoggerFactory.getLogger(MockEngine::class.java)
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
     private val recordedCalls: MutableList<RecordedCall> = mutableListOf()
-
-    var noMatchStatusCode: HttpStatusCode = HttpStatusCode.NotFound
+    private val defaultStatusCode = HttpStatusCode.NotFound
+    var noMatchStatusCode: HttpStatusCode = defaultStatusCode
 
     const val INITIAL_STATE = "INITIAL_STATE"
     internal var state: String = INITIAL_STATE
@@ -37,6 +37,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         handlers.clear()
         recordedCalls.clear()
         state = INITIAL_STATE
+        noMatchStatusCode = defaultStatusCode
     }
 
     fun get(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
