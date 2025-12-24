@@ -21,7 +21,8 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     private val logger = LoggerFactory.getLogger(MockEngine::class.java)
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
-    
+    private val recordedRequests: MutableList<HttpRequestData> = mutableListOf()
+
     var noMatchStatusCode: HttpStatusCode = HttpStatusCode.NotFound
 
     const val INITIAL_STATE = "INITIAL_STATE"
@@ -29,29 +30,30 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     fun clear() {
         handlers.clear()
+        recordedRequests.clear()
         state = INITIAL_STATE
     }
 
     fun get(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Get, path).apply {  builder() }.build())
     }
-    
+
     fun post(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Post, path).apply {  builder() }.build())
     }
-    
+
     fun put(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Put, path).apply {  builder() }.build())
     }
-    
+
     fun delete(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Delete, path).apply {  builder() }.build())
     }
-    
+
     fun patch(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Patch, path).apply {  builder() }.build())
     }
-    
+
     fun head(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Head, path).apply {  builder() }.build())
     }
@@ -60,9 +62,31 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         handlers.add(RequestMatcher.Builder(method, path).apply { builder() }.build())
     }
 
+    fun verify(count: Int? = null, builder: RequestMatcher.Builder.RequestBuilder.() -> Unit) {
+        val matcher = RequestMatcher.Builder().request(builder).build()
+        val matchingRequests = recordedRequests.filter { matcher.matches(it) is MatchResult.Match }
+
+        if (count != null && matchingRequests.size != count) {
+            throw AssertionError(
+                "Expected $count request(s) matching [${matcher.description()}], but found ${matchingRequests.size}"
+            )
+        }
+
+        if (count == null && matchingRequests.isEmpty()) {
+            throw AssertionError(
+                "Expected at least 1 request matching [${matcher.description()}], but found none"
+            )
+        }
+    }
+
+    fun requests(): List<HttpRequestData> = recordedRequests.toList()
+
     @InternalAPI
     override suspend fun execute(data: HttpRequestData): HttpResponseData {
         logger.trace("Handling request: {} {}", data.method, data.url)
+
+        recordedRequests.add(data)
+
         val mismatchDescriptions = mutableListOf<String>()
 
         for (matcher in handlers) {
@@ -114,6 +138,6 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
             callContext = callContext(),
         )
     }
-    
+
 
 }

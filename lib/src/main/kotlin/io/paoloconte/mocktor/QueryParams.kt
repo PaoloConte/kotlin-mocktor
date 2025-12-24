@@ -1,5 +1,7 @@
 package io.paoloconte.mocktor
 
+import io.ktor.http.Parameters
+
 class QueryParamsBuilder {
     private val params = mutableListOf<Pair<String, String>>()
     private val ignoreParams = mutableSetOf<String>()
@@ -30,7 +32,7 @@ class QueryParams(
     private val ignoreParams: Set<String>,
     private val ignoreUnknownParams: Boolean
 ) {
-    fun matches(actualParams: io.ktor.http.Parameters): MatchResult {
+    fun matches(actualParams: Parameters): MatchResult {
         val expectedFiltered = params.filterKeys { it !in ignoreParams }
         val actualMap = actualParams.entries()
             .associate { it.key to it.value }

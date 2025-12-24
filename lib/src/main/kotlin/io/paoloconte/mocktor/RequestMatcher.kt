@@ -23,26 +23,28 @@ class RequestMatcher(
     val responseException: Throwable?,
     val queryParams: QueryParams?,
 ) {
-    class Builder(var method: HttpMethod?, val path: String?) {
+    class Builder(method: HttpMethod? = null, path: String? = null) {
         
-        private val request = RequestBuilder()
+        private val request = RequestBuilder(method, path)
         private val response = ResponseBuilder()
         
         fun withState(state: String) {
             request.expectedState = state
         }
         
-        fun request(builder: RequestBuilder.() -> Unit) {
+        fun request(builder: RequestBuilder.() -> Unit): Builder {
             request.apply { builder() }
+            return this
         }
         
-        fun response(builder: ResponseBuilder.() -> Unit) {
+        fun response(builder: ResponseBuilder.() -> Unit): Builder {
             response.apply { builder() }
+            return this
         }
 
         fun build(): RequestMatcher = RequestMatcher(
-            path = path,
-            method = method,
+            path = request.path,
+            method = request.method,
             matcher = request.matcher,
             contentMatcher = request.contentMatcher,
             requestContentType = request.contentType,
@@ -58,7 +60,10 @@ class RequestMatcher(
             queryParams = request.queryParams
         )
         
-        class RequestBuilder {
+        class RequestBuilder(
+            internal var method: HttpMethod? = null,
+            internal var path: String? = null,
+        ) {
             internal var matcher: ((HttpRequestData) -> Boolean)? = null
             internal var contentType: ContentType? = null
             internal var body: ByteArray? = null
@@ -66,6 +71,14 @@ class RequestMatcher(
             internal var expectedState: String? = null
             internal var headers: MutableMap<String, String> = mutableMapOf()
             internal var queryParams: QueryParams? = null
+
+            fun path(path: String) {
+                this.path = path
+            }
+
+            fun method(method: HttpMethod) {
+                this.method = method
+            }
 
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
@@ -200,5 +213,15 @@ class RequestMatcher(
 
         return Match
     }
-    
+
+    fun description(): String {
+        val parts = mutableListOf<String>()
+        if (method != null) parts.add("method=$method")
+        if (path != null) parts.add("path=$path")
+        if (requestHeaders.isNotEmpty()) parts.add("headers=$requestHeaders")
+        if (queryParams != null) parts.add("queryParams=<specified>")
+        if (requestContent != null) parts.add("body=<specified>")
+        return parts.joinToString(", ").ifEmpty { "any" }
+    }
+
 }
