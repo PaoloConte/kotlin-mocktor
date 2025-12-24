@@ -21,6 +21,7 @@ class RequestMatcher(
     val requestHeaders: Map<String, String>,
     val responseHeaders: Map<String, String>,
     val responseException: Throwable?,
+    val queryParams: QueryParams?,
 ) {
     class Builder(var method: HttpMethod?, val path: String?) {
         
@@ -53,7 +54,8 @@ class RequestMatcher(
             expectedState = request.expectedState,
             setState = response.newState,
             responseHeaders = response.headers,
-            responseException = response.exception
+            responseException = response.exception,
+            queryParams = request.queryParams
         )
         
         class RequestBuilder {
@@ -63,6 +65,7 @@ class RequestMatcher(
             internal var contentMatcher: ContentMatcher = DefaultContentMatcher
             internal var expectedState: String? = null
             internal var headers: MutableMap<String, String> = mutableMapOf()
+            internal var queryParams: QueryParams? = null
 
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
@@ -100,6 +103,14 @@ class RequestMatcher(
                 val formBuilder = FormBodyBuilder().apply(builder)
                 body = formBuilder.build().toByteArray(Charsets.UTF_8)
                 contentMatcher = formBuilder.buildMatcher(ignoreUnknownKeys)
+            }
+
+            fun queryParams(
+                ignoreUnknownParams: Boolean = false,
+                builder: QueryParamsBuilder.() -> Unit
+            ) {
+                val paramsBuilder = QueryParamsBuilder().apply(builder)
+                queryParams = paramsBuilder.build(ignoreUnknownParams)
             }
 
         }
@@ -162,26 +173,31 @@ class RequestMatcher(
 
         if (method != null && method != data.method)
             return Mismatch("Method mismatch: expected $method but was ${data.method}")
-        
+
         if (path != null && path != data.url.encodedPath)
             return Mismatch("Path mismatch: expected $path but was ${data.url.encodedPath}")
-        
-        if (requestContentType != null && requestContentType != data.body.contentType) 
+
+        if (requestContentType != null && requestContentType != data.body.contentType)
             return Mismatch("Content-Type mismatch: expected $requestContentType but was ${data.body.contentType}")
 
         for (header in requestHeaders) {
             val actualValue = data.headers[header.key] ?: return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was missing")
             if (actualValue != header.value) return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was $actualValue")
         }
-        
-        if (matcher != null && !matcher(data)) 
+
+        if (queryParams != null) {
+            val result = queryParams.matches(data.url.parameters)
+            if (result is Mismatch) return result
+        }
+
+        if (matcher != null && !matcher(data))
             return Mismatch("Custom matcher failed")
-        
+
         if (requestContent != null) {
             val body = (data.body as? OutgoingContent.ByteArrayContent)?.bytes() ?: return Mismatch("Body mismatch: request body is not available as ByteArray")
             return contentMatcher.matches(body, requestContent)
         }
-        
+
         return Match
     }
     
