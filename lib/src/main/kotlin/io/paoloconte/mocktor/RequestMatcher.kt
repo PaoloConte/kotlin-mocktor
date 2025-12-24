@@ -61,6 +61,10 @@ class RequestMatcher(
                 this.contentType = contentType
             }
 
+            fun contentType(contentType: String) {
+                this.contentType = ContentType.parse(contentType)
+            }
+
             fun matching(matcher: (HttpRequestData) -> Boolean) {
                 this.matcher = matcher
             }
@@ -96,6 +100,10 @@ class RequestMatcher(
             
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
+            }
+
+            fun contentType(contentType: String) {
+                this.contentType = ContentType.parse(contentType)
             }
             
             fun bodyFromResource(path: String) {

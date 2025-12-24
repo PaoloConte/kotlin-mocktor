@@ -23,13 +23,13 @@ Add the dependencies to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    testImplementation("io.paoloconte:mocktor:1.3")
+    testImplementation("io.paoloconte:mocktor:1.3.1")
 
     // Optional: JSON body matching
-    testImplementation("io.paoloconte:mocktor-json:1.3")
+    testImplementation("io.paoloconte:mocktor-json:1.3.1")
 
     // Optional: XML body matching
-    testImplementation("io.paoloconte:mocktor-xml:1.3")
+    testImplementation("io.paoloconte:mocktor-xml:1.3.1")
 }
 ```
 

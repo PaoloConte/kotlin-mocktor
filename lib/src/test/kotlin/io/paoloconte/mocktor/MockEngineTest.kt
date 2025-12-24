@@ -29,6 +29,7 @@ class MockEngineTest {
         MockEngine.get("/api/users") {
             response {
                 status(HttpStatusCode.OK)
+                contentType("application/json")
                 body("""{"users": []}""")
             }
         }
@@ -37,6 +38,7 @@ class MockEngineTest {
             contentType(ContentType.Application.Json)
         }
         assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.Json, response.contentType())
         assertEquals("""{"users": []}""", response.bodyAsText())
     }
 
@@ -55,6 +57,65 @@ class MockEngineTest {
         }
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals("""{"id": 1}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `matches POST request with content type`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                contentType(ContentType.Application.Json)
+            }
+            response {
+                status(HttpStatusCode.Created)
+                body("""{"id": 1}""")
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals("""{"id": 1}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `matches POST request with content type as string`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                contentType("application/json")
+            }
+            response {
+                status(HttpStatusCode.Created)
+                body("""{"id": 1}""")
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals("""{"id": 1}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `does not match when content type differs`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                contentType("text/xml")
+            }
+            response {
+                status(HttpStatusCode.Created)
+                body("""{"id": 1}""")
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test
