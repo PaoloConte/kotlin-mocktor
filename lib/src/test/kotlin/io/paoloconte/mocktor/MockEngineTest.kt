@@ -489,4 +489,53 @@ class MockEngineTest {
         assertEquals("Network error", exception.message)
     }
 
+    @Test
+    fun `on matches request with custom method`() = runTest {
+        MockEngine.on(HttpMethod("CUSTOM"), "/api/data") {
+            response {
+                status(HttpStatusCode.OK)
+                body("""{"method": "custom"}""")
+            }
+        }
+
+        val response = client.request("http://localhost/api/data") {
+            method = HttpMethod("CUSTOM")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("""{"method": "custom"}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `on matches request with standard method`() = runTest {
+        MockEngine.on(HttpMethod.Post, "/api/users") {
+            response {
+                status(HttpStatusCode.Created)
+                body("""{"id": 1}""")
+            }
+        }
+
+        val response = client.post("http://localhost/api/users")
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals("""{"id": 1}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `on matches any method when method is null`() = runTest {
+        MockEngine.on(path = "/api/data") {
+            response {
+                status(HttpStatusCode.OK)
+                body("""{"any": true}""")
+            }
+        }
+
+        val getResponse = client.get("http://localhost/api/data")
+        assertEquals(HttpStatusCode.OK, getResponse.status)
+
+        val postResponse = client.post("http://localhost/api/data")
+        assertEquals(HttpStatusCode.OK, postResponse.status)
+
+        val deleteResponse = client.delete("http://localhost/api/data")
+        assertEquals(HttpStatusCode.OK, deleteResponse.status)
+    }
+
 }

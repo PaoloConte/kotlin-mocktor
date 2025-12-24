@@ -56,6 +56,10 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         handlers.add(RequestMatcher.Builder(HttpMethod.Head, path).apply {  builder() }.build())
     }
 
+    fun on(method: HttpMethod? = null, path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
+        handlers.add(RequestMatcher.Builder(method, path).apply { builder() }.build())
+    }
+
     @InternalAPI
     override suspend fun execute(data: HttpRequestData): HttpResponseData {
         logger.trace("Handling request: {} {}", data.method, data.url)
