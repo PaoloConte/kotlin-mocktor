@@ -6,7 +6,7 @@ import kotlin.test.assertIs
 
 class JsonContentMatcherTest {
 
-    private val matcher = JsonContentMatcher
+    private val matcher = JsonContentMatcher()
 
     @Test
     fun `matches identical JSON objects`() {

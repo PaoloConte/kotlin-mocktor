@@ -72,4 +72,43 @@ class JsonContentMatcherMockEngineTest {
         }
         assertEquals(HttpStatusCode.Created, response.status)
     }
+
+    @Test
+    fun `matches JSON body ignoring multiple fields`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                jsonBody(
+                    """{"name": "John", "age": 30, "createdAt": "2024-01-01", "updatedAt": "2024-01-02"}""",
+                    ignoreFields = setOf("createdAt", "updatedAt")
+                )
+            }
+            response {
+                status(HttpStatusCode.Created)
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "John", "age": 30, "createdAt": "different", "updatedAt": "also different"}""")
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+    }
+
+    @Test
+    fun `does not match JSON body when non-ignored fields differ`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                jsonBody("""{"name": "John", "age": 30, "timestamp": "2024-01-01"}""", ignoreFields = setOf("timestamp"))
+            }
+            response {
+                status(HttpStatusCode.Created)
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "Jane", "age": 30, "timestamp": "2024-01-01"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
 }
