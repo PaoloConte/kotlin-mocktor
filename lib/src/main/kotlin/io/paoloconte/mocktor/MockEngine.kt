@@ -32,27 +32,27 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         state = INITIAL_STATE
     }
 
-    fun get(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun get(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Get, path).apply {  builder() }.build())
     }
     
-    fun post(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun post(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Post, path).apply {  builder() }.build())
     }
     
-    fun put(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun put(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Put, path).apply {  builder() }.build())
     }
     
-    fun delete(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun delete(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Delete, path).apply {  builder() }.build())
     }
     
-    fun patch(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun patch(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Patch, path).apply {  builder() }.build())
     }
     
-    fun head(path: String, builder: RequestMatcher.Builder.() -> Unit) {
+    fun head(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Head, path).apply {  builder() }.build())
     }
 

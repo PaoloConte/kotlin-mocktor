@@ -8,7 +8,7 @@ import io.paoloconte.mocktor.MatchResult.Mismatch
 
 class RequestMatcher(
     val method: HttpMethod,
-    val path: String,
+    val path: String?,
     val matcher: ((HttpRequestData) -> Boolean)?,
     val requestContentType: ContentType?,
     val requestContent: ByteArray?,
@@ -21,7 +21,7 @@ class RequestMatcher(
     val requestHeaders: Map<String, String>,
     val responseHeaders: Map<String, String>,
 ) {
-    class Builder(var method: HttpMethod, val path: String) {
+    class Builder(var method: HttpMethod, val path: String?) {
         
         private val request = RequestBuilder()
         private val response = ResponseBuilder()
@@ -147,7 +147,7 @@ class RequestMatcher(
         if (method != data.method) 
             return Mismatch("Method mismatch: expected $method but was ${data.method}")
         
-        if (path != data.url.encodedPath) 
+        if (path != null && path != data.url.encodedPath)
             return Mismatch("Path mismatch: expected $path but was ${data.url.encodedPath}")
         
         if (requestContentType != null && requestContentType != data.body.contentType) 

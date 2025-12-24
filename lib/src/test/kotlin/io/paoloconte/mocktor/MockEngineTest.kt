@@ -25,6 +25,24 @@ class MockEngineTest {
     }
 
     @Test
+    fun `matches GET request by any path`() = runTest {
+        MockEngine.get {
+            response {
+                status(HttpStatusCode.OK)
+                contentType("application/json")
+                body("""{"users": []}""")
+            }
+        }
+
+        val response = client.get("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.Json, response.contentType())
+        assertEquals("""{"users": []}""", response.bodyAsText())
+    }
+
+    @Test
     fun `matches GET request by path`() = runTest {
         MockEngine.get("/api/users") {
             response {
