@@ -68,10 +68,16 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                         state = matcher.setState
                     }
                     logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
+
+                    val headers = headers {
+                        matcher.responseHeaders.forEach { append(it.key, it.value) }
+                        append(HttpHeaders.ContentType, matcher.responseContentType.toString())
+                    }
+
                     return HttpResponseData(
                         statusCode = matcher.responseStatus,
                         requestTime = GMTDate(),
-                        headers = headersOf("Content-Type", matcher.responseContentType.toString()),
+                        headers = headers,
                         body = ByteReadChannel(matcher.responseContent?.invoke(data) ?: ByteArray(0)),
                         version = HttpProtocolVersion.HTTP_1_1,
                         callContext = callContext(),

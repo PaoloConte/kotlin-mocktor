@@ -18,6 +18,8 @@ class RequestMatcher(
     val responseContent: ((HttpRequestData) -> ByteArray)?,
     val expectedState: String?,
     val setState: String?,
+    val requestHeaders: Map<String, String>,
+    val responseHeaders: Map<String, String>,
 ) {
     class Builder(var method: HttpMethod, val path: String) {
         
@@ -43,11 +45,13 @@ class RequestMatcher(
             contentMatcher = request.contentMatcher,
             requestContentType = request.contentType,
             requestContent = request.body,
+            requestHeaders = request.headers,
             responseStatus = response.status,
             responseContentType = response.contentType,
             responseContent = response.bodyContent,
             expectedState = request.expectedState,
             setState = response.newState,
+            responseHeaders = response.headers
         )
         
         class RequestBuilder {
@@ -56,6 +60,7 @@ class RequestMatcher(
             internal var body: ByteArray? = null
             internal var contentMatcher: ContentMatcher = DefaultContentMatcher
             internal var expectedState: String? = null
+            internal var headers: MutableMap<String, String> = mutableMapOf()
 
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
@@ -63,6 +68,10 @@ class RequestMatcher(
 
             fun contentType(contentType: String) {
                 this.contentType = ContentType.parse(contentType)
+            }
+
+            fun header(name: String, value: String) {
+                headers[name] = value
             }
 
             fun matching(matcher: (HttpRequestData) -> Boolean) {
@@ -89,7 +98,8 @@ class RequestMatcher(
             internal var contentType: ContentType = ContentType.Application.Json
             internal var bodyContent: ((HttpRequestData) -> ByteArray)? = null
             internal var newState: String? = null
-            
+            internal var headers: MutableMap<String, String> = mutableMapOf()
+
             fun setState(state: String) {
                 newState = state
             }
@@ -104,6 +114,10 @@ class RequestMatcher(
 
             fun contentType(contentType: String) {
                 this.contentType = ContentType.parse(contentType)
+            }
+
+            fun header(name: String, value: String) {
+                headers[name] = value
             }
             
             fun bodyFromResource(path: String) {
@@ -138,6 +152,11 @@ class RequestMatcher(
         
         if (requestContentType != null && requestContentType != data.body.contentType) 
             return Mismatch("Content-Type mismatch: expected $requestContentType but was ${data.body.contentType}")
+
+        for (header in requestHeaders) {
+            val actualValue = data.headers[header.key] ?: return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was missing")
+            if (actualValue != header.value) return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was $actualValue")
+        }
         
         if (matcher != null && !matcher(data)) 
             return Mismatch("Custom matcher failed")

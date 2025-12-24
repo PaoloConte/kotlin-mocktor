@@ -383,4 +383,75 @@ class MockEngineTest {
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals("""{"id": 1, "created": true}""", response.bodyAsText())
     }
+
+    @Test
+    fun `does not match when expected header is missing`() = runTest {
+        MockEngine.get("/api/users") {
+            request {
+                header("Authorization", "Bearer token123")
+            }
+            response {
+                status(HttpStatusCode.OK)
+            }
+        }
+
+        val response = client.get("http://localhost/api/users")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `does not match when header value differs`() = runTest {
+        MockEngine.get("/api/users") {
+            request {
+                header("Authorization", "Bearer token123")
+            }
+            response {
+                status(HttpStatusCode.OK)
+            }
+        }
+
+        val response = client.get("http://localhost/api/users") {
+            header("Authorization", "Bearer wrong-token")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `matches request with multiple expected headers`() = runTest {
+        MockEngine.get("/api/users") {
+            request {
+                header("Authorization", "Bearer token123")
+                header("X-Request-Id", "req-456")
+            }
+            response {
+                status(HttpStatusCode.OK)
+                body("""{"success": true}""")
+            }
+        }
+
+        val response = client.get("http://localhost/api/users") {
+            header("Authorization", "Bearer token123")
+            header("X-Request-Id", "req-456")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `response includes multiple custom headers`() = runTest {
+        MockEngine.get("/api/data") {
+            response {
+                status(HttpStatusCode.OK)
+                header("X-Header-One", "value1")
+                header("X-Header-Two", "value2")
+                header("X-Request-Id", "abc-123")
+                body("""{"data": "test"}""")
+            }
+        }
+
+        val response = client.get("http://localhost/api/data")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("value1", response.headers["X-Header-One"])
+        assertEquals("value2", response.headers["X-Header-Two"])
+        assertEquals("abc-123", response.headers["X-Request-Id"])
+    }
 }
