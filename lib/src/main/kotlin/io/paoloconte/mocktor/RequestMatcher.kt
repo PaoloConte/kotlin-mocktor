@@ -20,6 +20,7 @@ class RequestMatcher(
     val setState: String?,
     val requestHeaders: Map<String, String>,
     val responseHeaders: Map<String, String>,
+    val responseException: Throwable?,
 ) {
     class Builder(var method: HttpMethod, val path: String?) {
         
@@ -51,7 +52,8 @@ class RequestMatcher(
             responseContent = response.bodyContent,
             expectedState = request.expectedState,
             setState = response.newState,
-            responseHeaders = response.headers
+            responseHeaders = response.headers,
+            responseException = response.exception
         )
         
         class RequestBuilder {
@@ -99,15 +101,16 @@ class RequestMatcher(
             internal var bodyContent: ((HttpRequestData) -> ByteArray)? = null
             internal var newState: String? = null
             internal var headers: MutableMap<String, String> = mutableMapOf()
+            internal var exception: Throwable? = null
 
             fun setState(state: String) {
                 newState = state
             }
-            
+
             fun status(status: HttpStatusCode) {
                 this.status = status
             }
-            
+
             fun contentType(contentType: ContentType) {
                 this.contentType = contentType
             }
@@ -119,20 +122,24 @@ class RequestMatcher(
             fun header(name: String, value: String) {
                 headers[name] = value
             }
-            
+
+            fun throws(exception: Throwable) {
+                this.exception = exception
+            }
+
             fun bodyFromResource(path: String) {
-                bodyContent = { r -> 
+                bodyContent = { r ->
                     this.javaClass.getResource(path)?.readBytes()
                         ?: error("Unable to load resource file '$path'")
-                } 
+                }
             }
-            
+
             fun body(content: String) {
-                bodyContent = { r -> 
+                bodyContent = { r ->
                     content.toByteArray(Charsets.UTF_8)
                 }
             }
-            
+
             fun body(content: (HttpRequestData) -> ByteArray) {
                 bodyContent = content
             }

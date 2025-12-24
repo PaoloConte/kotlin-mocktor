@@ -69,6 +69,10 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                     }
                     logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
 
+                    if (matcher.responseException != null) {
+                        throw matcher.responseException
+                    }
+
                     val headers = headers {
                         matcher.responseHeaders.forEach { append(it.key, it.value) }
                         append(HttpHeaders.ContentType, matcher.responseContentType.toString())

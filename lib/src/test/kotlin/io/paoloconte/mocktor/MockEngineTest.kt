@@ -5,9 +5,11 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.test.runTest
+import java.io.IOException
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class MockEngineTest {
 
@@ -472,4 +474,19 @@ class MockEngineTest {
         assertEquals("value2", response.headers["X-Header-Two"])
         assertEquals("abc-123", response.headers["X-Request-Id"])
     }
+
+    @Test
+    fun `response throws exception`() = runTest {
+        MockEngine.get("/api/data") {
+            response {
+                throws(IOException("Network error"))
+            }
+        }
+
+        val exception = assertFailsWith<IOException> {
+            client.get("http://localhost/api/data")
+        }
+        assertEquals("Network error", exception.message)
+    }
+
 }
