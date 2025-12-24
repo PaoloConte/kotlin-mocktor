@@ -8,8 +8,9 @@ A Kotlin library for mocking Ktor HTTP client requests in tests. Mocktor provide
 - Support for all HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD)
 - Request body matching with pluggable content matchers
 - Built-in JSON and XML content matchers for semantic comparison
-- Custom request matching with lambda expressions
+- Form URL-encoded body matching
 - Query parameter matching
+- Request verification (assert requests were made)
 
 ## Modules
 
@@ -78,6 +79,117 @@ MockEngine.post("/api/users") {
     }
     response {
         status(HttpStatusCode.Created)
+    }
+}
+```
+
+### Query Parameter Matching
+
+Match requests by query parameters:
+
+```kotlin
+MockEngine.get("/api/users") {
+    request {
+        queryParams {
+            param("page", "1")
+            param("limit", "10")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
+        body("""{"users": [], "page": 1}""")
+    }
+}
+
+// Matches: GET /api/users?page=1&limit=10
+// Matches: GET /api/users?limit=10&page=1  (order doesn't matter)
+```
+
+Ignore extra query parameters:
+
+```kotlin
+MockEngine.get("/api/users") {
+    request {
+        queryParams(ignoreUnknownParams = true) {
+            param("page", "1")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
+    }
+}
+
+// Matches: GET /api/users?page=1&anyOtherParam=value
+```
+
+Ignore specific parameters (e.g., timestamps):
+
+```kotlin
+MockEngine.get("/api/users") {
+    request {
+        queryParams {
+            param("page", "1")
+            param("timestamp", "ignored")
+            ignoreParam("timestamp")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
+    }
+}
+```
+
+### Form URL-Encoded Body Matching
+
+Match form data in POST requests:
+
+```kotlin
+MockEngine.post("/api/login") {
+    request {
+        formBody {
+            param("username", "john")
+            param("password", "secret")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
+    }
+}
+
+// Matches requests with body: username=john&password=secret
+// Parameter order doesn't matter
+```
+
+Ignore extra form fields:
+
+```kotlin
+MockEngine.post("/api/login") {
+    request {
+        formBody(ignoreUnknownKeys = true) {
+            param("username", "john")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
+    }
+}
+
+// Matches even if request has additional fields
+```
+
+Ignore specific fields:
+
+```kotlin
+MockEngine.post("/api/data") {
+    request {
+        formBody {
+            param("name", "test")
+            param("timestamp", "ignored")
+            ignoreField("timestamp")
+        }
+    }
+    response {
+        status(HttpStatusCode.OK)
     }
 }
 ```
@@ -226,6 +338,69 @@ MockEngine.post("/api/data") {
 // Matches even if request has different whitespace than the resource file
 ```
 
+### Request Verification
+
+Verify that specific requests were made during a test. All requests are recorded regardless of whether they match a handler.
+
+```kotlin
+// Make some requests
+client.post("http://localhost/api/bookings")
+client.post("http://localhost/api/bookings")
+
+// Verify exact count
+MockEngine.verify(count = 2) {
+    method(HttpMethod.Post)
+    path("/api/bookings")
+}
+
+// Verify at least one request was made (no count = at least 1)
+MockEngine.verify {
+    method(HttpMethod.Get)
+    path("/api/users")
+}
+
+// Verify no requests were made
+MockEngine.verify(count = 0) {
+    method(HttpMethod.Delete)
+}
+```
+
+Verify with headers:
+
+```kotlin
+client.get("http://localhost/api/users") {
+    header("Authorization", "Bearer token123")
+}
+
+MockEngine.verify(count = 1) {
+    path("/api/users")
+    header("Authorization", "Bearer token123")
+}
+```
+
+Verify with query parameters:
+
+```kotlin
+client.get("http://localhost/api/users?page=1&limit=10")
+
+MockEngine.verify(count = 1) {
+    path("/api/users")
+    queryParams {
+        param("page", "1")
+        param("limit", "10")
+    }
+}
+```
+
+Access recorded requests directly:
+
+```kotlin
+val requests = MockEngine.requests()
+assertEquals(2, requests.size)
+assertEquals(HttpMethod.Post, requests[0].method)
+assertEquals("/api/users", requests[0].url.encodedPath)
+```
+
 ### State Management
 MockEngine supports state-based request matching. This allows you to simulate stateful interactions (e.g., authentication flows):
 
@@ -251,7 +426,7 @@ MockEngine.get("/profile") {
 
 ### Clearing Handlers
 
-Clear all registered handlers between tests:
+Clear all registered handlers and recorded requests between tests:
 
 ```kotlin
 @AfterTest
@@ -270,26 +445,26 @@ MockEngine.noMatchStatusCode = HttpStatusCode.BadRequest
 ```
 
 ## Custom Content Matchers
- 
+
  Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock.
- 
+
  ```kotlin
  import io.paoloconte.mocktor.ContentMatcher
  import io.paoloconte.mocktor.MatchResult
- 
+
  // Custom matcher that compares body and expected value case-insensitively
  val caseInsensitiveMatcher = object : ContentMatcher {
      override fun matches(body: ByteArray, expected: ByteArray): MatchResult {
          val bodyString = body.decodeToString().lowercase()
          val expectedString = expected.decodeToString().lowercase()
-         
-         return if (bodyString == expectedString) 
-            MatchResult.Match 
-         else 
+
+         return if (bodyString == expectedString)
+            MatchResult.Match
+         else
             MatchResult.Mismatch("Body mismatch: expected '$expectedString' but got '$bodyString'")
      }
  }
- 
+
  MockEngine.post("/api/data") {
      request {
          body("HELLO WORLD")  // expected body to compare against
@@ -299,30 +474,31 @@ MockEngine.noMatchStatusCode = HttpStatusCode.BadRequest
          status(HttpStatusCode.OK)
      }
  }
- 
+
  // This request will match because "hello world" equals "HELLO WORLD" case-insensitively
  client.post("/api/data") {
      setBody("hello world")
  }
  ```
- 
+
  Note: If you only need to validate the request body without comparing it to an expected value, use the `matching` lambda instead (see [Custom Request Matching](#custom-request-matching)).
- 
+
  ## How It Works
- 
+
  1. Register mock handlers using `MockEngine.get()`, `MockEngine.post()`, etc.
  2. Each handler specifies a path and optional matching criteria
- 3. When the HTTP client makes a request, MockEngine iterates through handlers
+ 3. When the HTTP client makes a request, MockEngine records it and iterates through handlers
  4. The first matching handler returns its configured response
  5. If no handler matches, a response with `noMatchStatusCode` (default 404 Not Found) is returned
+ 6. Use `MockEngine.verify()` to assert that expected requests were made
 
  ### Debugging Mismatches
 
- If no handler matches a request, MockEngine returns a response with `noMatchStatusCode` (default 404 Not Found) 
- containing a detailed report in the body explaining why each registered handler failed to match, identifying the 
- mismatch reason (e.g., incorrect path, method, headers, or body content).  
+ If no handler matches a request, MockEngine returns a response with `noMatchStatusCode` (default 404 Not Found)
+ containing a detailed report in the body explaining why each registered handler failed to match, identifying the
+ mismatch reason (e.g., incorrect path, method, headers, or body content).
  The same information is also logged via slf4j.
- 
+
  ## License
- 
+
  MIT

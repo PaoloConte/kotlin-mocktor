@@ -9,6 +9,11 @@ import io.ktor.util.date.*
 import io.ktor.utils.io.*
 import org.slf4j.LoggerFactory
 
+data class RecordedCall(
+    val request: HttpRequestData,
+    val response: HttpResponseData? = null
+)
+
 object MockEngine: HttpClientEngineBase("mock-engine") {
 
     override val config: HttpClientEngineConfig = object : HttpClientEngineConfig() {}
@@ -21,7 +26,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     private val logger = LoggerFactory.getLogger(MockEngine::class.java)
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
-    private val recordedRequests: MutableList<HttpRequestData> = mutableListOf()
+    private val recordedCalls: MutableList<RecordedCall> = mutableListOf()
 
     var noMatchStatusCode: HttpStatusCode = HttpStatusCode.NotFound
 
@@ -30,7 +35,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     fun clear() {
         handlers.clear()
-        recordedRequests.clear()
+        recordedCalls.clear()
         state = INITIAL_STATE
     }
 
@@ -64,28 +69,28 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
 
     fun verify(count: Int? = null, builder: RequestMatcher.Builder.RequestBuilder.() -> Unit) {
         val matcher = RequestMatcher.Builder().request(builder).build()
-        val matchingRequests = recordedRequests.filter { matcher.matches(it) is MatchResult.Match }
+        val matchingCalls = recordedCalls.filter { matcher.matches(it.request) is MatchResult.Match }
 
-        if (count != null && matchingRequests.size != count) {
+        if (count != null && matchingCalls.size != count) {
             throw AssertionError(
-                "Expected $count request(s) matching [${matcher.description()}], but found ${matchingRequests.size}"
+                "Expected $count request(s) matching [${matcher.description()}], but found ${matchingCalls.size}"
             )
         }
 
-        if (count == null && matchingRequests.isEmpty()) {
+        if (count == null && matchingCalls.isEmpty()) {
             throw AssertionError(
                 "Expected at least 1 request matching [${matcher.description()}], but found none"
             )
         }
     }
 
-    fun requests(): List<HttpRequestData> = recordedRequests.toList()
+    fun calls(): List<RecordedCall> = recordedCalls.toList()
+
+    fun requests(): List<RecordedCall> = recordedCalls.toList()
 
     @InternalAPI
     override suspend fun execute(data: HttpRequestData): HttpResponseData {
         logger.trace("Handling request: {} {}", data.method, data.url)
-
-        recordedRequests.add(data)
 
         val mismatchDescriptions = mutableListOf<String>()
 
@@ -98,6 +103,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                     logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
 
                     if (matcher.responseException != null) {
+                        recordedCalls.add(RecordedCall(data))
                         throw matcher.responseException
                     }
 
@@ -106,7 +112,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                         append(HttpHeaders.ContentType, matcher.responseContentType.toString())
                     }
 
-                    return HttpResponseData(
+                    val response = HttpResponseData(
                         statusCode = matcher.responseStatus,
                         requestTime = GMTDate(),
                         headers = headers,
@@ -114,6 +120,9 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                         version = HttpProtocolVersion.HTTP_1_1,
                         callContext = callContext(),
                     )
+
+                    recordedCalls.add(RecordedCall(data, response))
+                    return response
                 }
                 is MatchResult.Mismatch -> {
                     mismatchDescriptions.add(result.reason)
@@ -129,7 +138,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         val mismatchReport = sb.toString()
         logger.error(mismatchReport)
 
-        return HttpResponseData(
+        val response = HttpResponseData(
             statusCode = noMatchStatusCode,
             requestTime = GMTDate(),
             headers = headersOf(),
@@ -137,6 +146,9 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
             version = HttpProtocolVersion.HTTP_1_1,
             callContext = callContext(),
         )
+
+        recordedCalls.add(RecordedCall(data, response))
+        return response
     }
 
 

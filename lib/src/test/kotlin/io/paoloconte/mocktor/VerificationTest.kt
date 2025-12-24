@@ -132,12 +132,12 @@ class VerificationTest {
         val requests = MockEngine.requests()
         assertEquals(2, requests.size)
 
-        assertEquals(HttpMethod.Get, requests[0].method)
-        assertEquals("/api/users", requests[0].url.encodedPath)
-        assertEquals("1", requests[0].url.parameters["page"])
+        assertEquals(HttpMethod.Get, requests[0].request.method)
+        assertEquals("/api/users", requests[0].request.url.encodedPath)
+        assertEquals("1", requests[0].request.url.parameters["page"])
 
-        assertEquals(HttpMethod.Post, requests[1].method)
-        assertEquals("/api/users", requests[1].url.encodedPath)
+        assertEquals(HttpMethod.Post, requests[1].request.method)
+        assertEquals("/api/users", requests[1].request.url.encodedPath)
     }
 
     @Test
