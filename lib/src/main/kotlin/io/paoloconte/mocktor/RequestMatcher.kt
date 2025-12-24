@@ -92,7 +92,16 @@ class RequestMatcher(
             fun withContentMatcher(contentMatcher: ContentMatcher) {
                 this.contentMatcher = contentMatcher
             }
-            
+
+            fun formBody(
+                ignoreUnknownKeys: Boolean = false,
+                builder: FormBodyBuilder.() -> Unit
+            ) {
+                val formBuilder = FormBodyBuilder().apply(builder)
+                body = formBuilder.build().toByteArray(Charsets.UTF_8)
+                contentMatcher = formBuilder.buildMatcher(ignoreUnknownKeys)
+            }
+
         }
 
         class ResponseBuilder {
