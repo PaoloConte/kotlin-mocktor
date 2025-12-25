@@ -24,8 +24,8 @@ class VerificationTest {
         client.post("http://localhost/api/bookings")
 
         MockEngine.verify(count = 2) {
-            method(HttpMethod.Post)
-            path("/api/bookings")
+            method equalTo HttpMethod.Post
+            path equalTo "/api/bookings"
         }
     }
 
@@ -35,8 +35,8 @@ class VerificationTest {
 
         assertFailsWith<AssertionError> {
             MockEngine.verify(count = 2) {
-                method(HttpMethod.Post)
-                path("/api/bookings")
+                method equalTo HttpMethod.Post
+                path equalTo "/api/bookings"
             }
         }
     }
@@ -48,7 +48,7 @@ class VerificationTest {
         client.post("http://localhost/api/users")
 
         MockEngine.verify(count = 2) {
-            method(HttpMethod.Post)
+            method equalTo HttpMethod.Post
         }
     }
 
@@ -59,7 +59,7 @@ class VerificationTest {
         client.get("http://localhost/api/orders")
 
         MockEngine.verify(count = 2) {
-            path("/api/users")
+            path equalTo "/api/users"
         }
     }
 
@@ -68,8 +68,8 @@ class VerificationTest {
         client.post("http://localhost/api/bookings")
 
         MockEngine.verify {
-            method(HttpMethod.Post)
-            path("/api/bookings")
+            method equalTo HttpMethod.Post
+            path equalTo "/api/bookings"
         }
     }
 
@@ -79,8 +79,8 @@ class VerificationTest {
 
         assertFailsWith<AssertionError> {
             MockEngine.verify {
-                method(HttpMethod.Post)
-                path("/api/bookings")
+                method equalTo HttpMethod.Post
+                path equalTo "/api/bookings"
             }
         }
     }
@@ -95,8 +95,8 @@ class VerificationTest {
         }
 
         MockEngine.verify(count = 1) {
-            path("/api/users")
-            header("Authorization", "Bearer token123")
+            path equalTo "/api/users"
+            headers have "Authorization" equalTo "Bearer token123"
         }
     }
 
@@ -106,11 +106,9 @@ class VerificationTest {
         client.get("http://localhost/api/users?page=2&limit=10")
 
         MockEngine.verify(count = 1) {
-            path("/api/users")
-            queryParams {
-                param("page", "1")
-                param("limit", "10")
-            }
+            path equalTo "/api/users"
+            queryParams have "page" equalTo "1"
+            queryParams have "limit" equalTo "10"
         }
     }
 
@@ -119,8 +117,8 @@ class VerificationTest {
         client.get("http://localhost/api/users")
 
         MockEngine.verify(count = 0) {
-            method(HttpMethod.Post)
-            path("/api/users")
+            method equalTo HttpMethod.Post
+            path equalTo "/api/users"
         }
     }
 

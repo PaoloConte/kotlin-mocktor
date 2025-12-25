@@ -1,5 +1,6 @@
-package io.paoloconte.mocktor
+package io.paoloconte.mocktor.contentMatchers
 
+import io.paoloconte.mocktor.MatchResult
 import io.paoloconte.mocktor.MatchResult.Match
 import io.paoloconte.mocktor.MatchResult.Mismatch
 

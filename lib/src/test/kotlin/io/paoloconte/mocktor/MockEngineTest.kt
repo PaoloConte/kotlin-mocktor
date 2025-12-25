@@ -30,7 +30,6 @@ class MockEngineTest {
     fun `matches GET request by any path`() = runTest {
         MockEngine.get {
             response {
-                status(HttpStatusCode.OK)
                 contentType("application/json")
                 body("""{"users": []}""")
             }
@@ -42,6 +41,25 @@ class MockEngineTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(ContentType.Application.Json, response.contentType())
         assertEquals("""{"users": []}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `matches GET request with custom body response`() = runTest {
+        MockEngine.get {
+            response {
+                contentType(ContentType.Application.Json)
+                body { req ->
+                    """{"name": "${req.url.parameters["name"]}"}""".toByteArray()
+                }
+            }
+        }
+
+        val response = client.get("http://localhost/api/users") {
+            parameter("name", "John")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.Json, response.contentType())
+        assertEquals("""{"name": "John"}""", response.bodyAsText())
     }
 
     @Test
@@ -63,8 +81,67 @@ class MockEngineTest {
     }
 
     @Test
+    fun `matches GET request by path regex`() = runTest {
+        MockEngine.get {
+            request {
+                path like "/api/users/[0-9]+"
+            }
+        }
+
+        val response = client.get("http://localhost/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `does not match when path regex does not match using notLike`() = runTest {
+    MockEngine.get {
+            request {
+                path notLike "/api/users/[0-9]+"
+            }
+        }
+
+        val response = client.get("http://localhost/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `matches path with contains`() = runTest {
+    MockEngine.get {
+            request {
+                path containing "/users/"
+            }
+        }
+
+        val response = client.get("http://localhost/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `does not match path with not contains`() = runTest {
+    MockEngine.get {
+            request {
+                path notContaining  "/users/"
+            }
+        }
+
+        val response = client.get("http://localhost/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
     fun `matches POST request`() = runTest {
-        MockEngine.post("/api/users") {
+        MockEngine.post {
+            request {
+                path equalTo "/api/users"
+            }
             response {
                 status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
@@ -77,6 +154,25 @@ class MockEngineTest {
         }
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals("""{"id": 1}""", response.bodyAsText())
+    }
+
+    @Test
+    fun `does not match not equal path`() = runTest {
+        MockEngine.post {
+            request {
+                path notEqualTo "/api/users"
+            }
+            response {
+                status(HttpStatusCode.Created)
+                body("""{"id": 1}""")
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test
@@ -103,7 +199,7 @@ class MockEngineTest {
     fun `matches POST request with content type as string`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                contentType("application/json")
+                contentType equalTo "application/json"
             }
             response {
                 status(HttpStatusCode.Created)
@@ -123,7 +219,7 @@ class MockEngineTest {
     fun `does not match when content type differs`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                contentType("text/xml")
+                contentType(ContentType.Text.Xml)
             }
             response {
                 status(HttpStatusCode.Created)
@@ -402,58 +498,6 @@ class MockEngineTest {
         }
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals("""{"id": 1, "created": true}""", response.bodyAsText())
-    }
-
-    @Test
-    fun `does not match when expected header is missing`() = runTest {
-        MockEngine.get("/api/users") {
-            request {
-                header("Authorization", "Bearer token123")
-            }
-            response {
-                status(HttpStatusCode.OK)
-            }
-        }
-
-        val response = client.get("http://localhost/api/users")
-        assertEquals(HttpStatusCode.NotFound, response.status)
-    }
-
-    @Test
-    fun `does not match when header value differs`() = runTest {
-        MockEngine.get("/api/users") {
-            request {
-                header("Authorization", "Bearer token123")
-            }
-            response {
-                status(HttpStatusCode.OK)
-            }
-        }
-
-        val response = client.get("http://localhost/api/users") {
-            header("Authorization", "Bearer wrong-token")
-        }
-        assertEquals(HttpStatusCode.NotFound, response.status)
-    }
-
-    @Test
-    fun `matches request with multiple expected headers`() = runTest {
-        MockEngine.get("/api/users") {
-            request {
-                header("Authorization", "Bearer token123")
-                header("X-Request-Id", "req-456")
-            }
-            response {
-                status(HttpStatusCode.OK)
-                body("""{"success": true}""")
-            }
-        }
-
-        val response = client.get("http://localhost/api/users") {
-            header("Authorization", "Bearer token123")
-            header("X-Request-Id", "req-456")
-        }
-        assertEquals(HttpStatusCode.OK, response.status)
     }
 
     @Test

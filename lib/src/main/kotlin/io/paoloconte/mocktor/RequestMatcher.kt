@@ -5,12 +5,20 @@ import io.ktor.http.*
 import io.ktor.http.content.*
 import io.paoloconte.mocktor.MatchResult.Match
 import io.paoloconte.mocktor.MatchResult.Mismatch
+import io.paoloconte.mocktor.contentMatchers.ContentMatcher
+import io.paoloconte.mocktor.contentMatchers.DefaultContentMatcher
+import io.paoloconte.mocktor.contentMatchers.FormUrlEncodedContentMatcher
+import io.paoloconte.mocktor.valueMatchers.HeadersMatcher
+import io.paoloconte.mocktor.valueMatchers.Matchable
+import io.paoloconte.mocktor.valueMatchers.QueryParamsMatcher
+import io.paoloconte.mocktor.valueMatchers.StringMatchable
+import io.paoloconte.mocktor.valueMatchers.ValueMatcher
 
 class RequestMatcher(
-    val method: HttpMethod?,
-    val path: String?,
+    val method: ValueMatcher<HttpMethod>?,
+    val path: ValueMatcher<String>?,
     val matcher: ((HttpRequestData) -> Boolean)?,
-    val requestContentType: ContentType?,
+    val requestContentType: ValueMatcher<String>?,
     val requestContent: ByteArray?,
     val contentMatcher: ContentMatcher,
     val responseStatus: HttpStatusCode,
@@ -18,10 +26,11 @@ class RequestMatcher(
     val responseContent: ((HttpRequestData) -> ByteArray)?,
     val expectedState: String?,
     val setState: String?,
-    val requestHeaders: Map<String, String>,
+    val requestHeaders: HeadersMatcher,
     val responseHeaders: Map<String, String>,
     val responseException: Throwable?,
-    val queryParams: QueryParams?,
+    val queryParams: QueryParamsMatcher,
+    val formParams: FormUrlEncodedContentMatcher,
 ) {
     class Builder(method: HttpMethod? = null, path: String? = null) {
         
@@ -43,11 +52,11 @@ class RequestMatcher(
         }
 
         fun build(): RequestMatcher = RequestMatcher(
-            path = request.path,
-            method = request.method,
+            path = request.path.matcher,
+            method = request.method.matcher,
             matcher = request.matcher,
             contentMatcher = request.contentMatcher,
-            requestContentType = request.contentType,
+            requestContentType = request.contentType.matcher,
             requestContent = request.body,
             requestHeaders = request.headers,
             responseStatus = response.status,
@@ -57,39 +66,29 @@ class RequestMatcher(
             setState = response.newState,
             responseHeaders = response.headers,
             responseException = response.exception,
-            queryParams = request.queryParams
+            queryParams = request.queryParams,
+            formParams = request.formParams,
         )
+
+
         
         class RequestBuilder(
-            internal var method: HttpMethod? = null,
-            internal var path: String? = null,
+            initialMethod: HttpMethod? = null,
+            initialPath: String? = null,
         ) {
+            val method = Matchable<HttpMethod>().apply { initialMethod?.let { this equalTo it } }
+            val path = StringMatchable().apply { initialPath?.let { this equalTo it } }
+            val queryParams = QueryParamsMatcher()
+            val formParams = FormUrlEncodedContentMatcher()
+            val contentType: StringMatchable = StringMatchable()
+            val headers = HeadersMatcher()
             internal var matcher: ((HttpRequestData) -> Boolean)? = null
-            internal var contentType: ContentType? = null
             internal var body: ByteArray? = null
             internal var contentMatcher: ContentMatcher = DefaultContentMatcher
             internal var expectedState: String? = null
-            internal var headers: MutableMap<String, String> = mutableMapOf()
-            internal var queryParams: QueryParams? = null
-
-            fun path(path: String) {
-                this.path = path
-            }
-
-            fun method(method: HttpMethod) {
-                this.method = method
-            }
 
             fun contentType(contentType: ContentType) {
-                this.contentType = contentType
-            }
-
-            fun contentType(contentType: String) {
-                this.contentType = ContentType.parse(contentType)
-            }
-
-            fun header(name: String, value: String) {
-                headers[name] = value
+                this.contentType equalTo contentType.toString()
             }
 
             fun matching(matcher: (HttpRequestData) -> Boolean) {
@@ -109,21 +108,12 @@ class RequestMatcher(
                 this.contentMatcher = contentMatcher
             }
 
-            fun formBody(
-                ignoreUnknownKeys: Boolean = false,
-                builder: FormBodyBuilder.() -> Unit
-            ) {
-                val formBuilder = FormBodyBuilder().apply(builder)
-                body = formBuilder.build().toByteArray(Charsets.UTF_8)
-                contentMatcher = formBuilder.buildMatcher(ignoreUnknownKeys)
+            fun strictQueryParams() {
+                queryParams.ignoreUnknownParams = false
             }
-
-            fun queryParams(
-                ignoreUnknownParams: Boolean = false,
-                builder: QueryParamsBuilder.() -> Unit
-            ) {
-                val paramsBuilder = QueryParamsBuilder().apply(builder)
-                queryParams = paramsBuilder.build(ignoreUnknownParams)
+            
+            fun strictFormParams() {
+                formParams.ignoreUnknownKeys = false
             }
 
         }
@@ -184,22 +174,27 @@ class RequestMatcher(
             return Mismatch("State mismatch: expected $expectedState but was $currentState")
         }
 
-        if (method != null && method != data.method)
+        if (method != null && !method.matches(data.method))
             return Mismatch("Method mismatch: expected $method but was ${data.method}")
 
-        if (path != null && path != data.url.encodedPath)
+        if (path != null && !path.matches(data.url.encodedPath))
             return Mismatch("Path mismatch: expected $path but was ${data.url.encodedPath}")
 
-        if (requestContentType != null && requestContentType != data.body.contentType)
+        if (requestContentType != null && !requestContentType.matches(data.body.contentType.toString()))
             return Mismatch("Content-Type mismatch: expected $requestContentType but was ${data.body.contentType}")
 
-        for (header in requestHeaders) {
-            val actualValue = data.headers[header.key] ?: return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was missing")
-            if (actualValue != header.value) return Mismatch("Header mismatch: expected ${header.key}=${header.value} but was $actualValue")
+        if (requestHeaders.isNotEmpty()) {
+            val result = requestHeaders.matches(data.headers)
+            if (result is Mismatch) return result
         }
 
-        if (queryParams != null) {
+        if (queryParams.isNotEmpty()) {
             val result = queryParams.matches(data.url.parameters)
+            if (result is Mismatch) return result
+        }
+
+        if (formParams.isNotEmpty()) {
+            val result = formParams.matches(data.bodyAsBytesOrNull() ?: ByteArray(0), ByteArray(0))
             if (result is Mismatch) return result
         }
 
@@ -218,8 +213,8 @@ class RequestMatcher(
         val parts = mutableListOf<String>()
         if (method != null) parts.add("method=$method")
         if (path != null) parts.add("path=$path")
-        if (requestHeaders.isNotEmpty()) parts.add("headers=$requestHeaders")
-        if (queryParams != null) parts.add("queryParams=<specified>")
+        if (requestHeaders.isNotEmpty()) parts.add("headers=<specified>")
+        if (queryParams.isNotEmpty()) parts.add("queryParams=<specified>")
         if (requestContent != null) parts.add("body=<specified>")
         return parts.joinToString(", ").ifEmpty { "any" }
     }

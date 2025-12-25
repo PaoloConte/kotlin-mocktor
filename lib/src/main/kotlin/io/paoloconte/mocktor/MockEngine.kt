@@ -101,7 +101,6 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
                     if (matcher.setState != null) {
                         state = matcher.setState
                     }
-                    logger.trace("Matched handler: {} {}", matcher.method, matcher.path)
 
                     if (matcher.responseException != null) {
                         recordedCalls.add(RecordedCall(data))

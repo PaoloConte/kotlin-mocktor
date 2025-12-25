@@ -1,6 +1,6 @@
 package io.paoloconte.mocktor.json
 
-import io.paoloconte.mocktor.ContentMatcher
+import io.paoloconte.mocktor.contentMatchers.ContentMatcher
 import io.paoloconte.mocktor.MatchResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement

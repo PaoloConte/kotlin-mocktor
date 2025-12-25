@@ -9,7 +9,9 @@ A Kotlin library for mocking Ktor HTTP client requests in tests. Mocktor provide
 - Request body matching with pluggable content matchers
 - Built-in JSON and XML content matchers for semantic comparison
 - Form URL-encoded body matching
-- Query parameter matching
+- Query parameter matching with flexible matchers
+- Header matching
+- Fluent value matchers: `equalTo`, `like` (regex), `containing`, and negations
 - Request verification (assert requests were made)
 
 ## Modules
@@ -24,13 +26,13 @@ Add the dependencies to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    testImplementation("io.paoloconte:mocktor:1.4.0")
+    testImplementation("io.paoloconte:mocktor:2.0.0")
 
     // Optional: JSON body matching
-    testImplementation("io.paoloconte:mocktor-json:1.4.0")
+    testImplementation("io.paoloconte:mocktor-json:2.0.0")
 
     // Optional: XML body matching
-    testImplementation("io.paoloconte:mocktor-xml:1.4.0")
+    testImplementation("io.paoloconte:mocktor-xml:2.0.0")
 }
 ```
 
@@ -66,6 +68,16 @@ MockEngine.post("/api/users") {
         body("""{"id": 1}""")
     }
 }
+
+// Dynamic response based on request data
+MockEngine.get("/api/users") {
+    response {
+        contentType(ContentType.Application.Json)
+        body { request ->
+            """{"name": "${request.url.parameters["name"]}"}""".toByteArray()
+        }
+    }
+}
 ```
 
 ### Matching Request Body
@@ -83,17 +95,72 @@ MockEngine.post("/api/users") {
 }
 ```
 
+### Value Matchers
+
+Mocktor provides fluent value matchers for paths, query parameters, headers, and more:
+
+```kotlin
+// Exact match
+path equalTo "/api/users"
+
+// Negated match
+path notEqualTo "/api/admin"
+
+// Regex matching
+path like "/api/users/[0-9]+"
+path notLike "/api/internal/.*"
+
+// Substring matching
+path containing "/users/"
+path notContaining "/admin/"
+```
+
+These matchers can be used with `path`, `method`, `contentType`, query parameters, headers, and form body fields.
+
+### Path Matching
+
+Match paths using value matchers:
+
+```kotlin
+// Exact path match
+MockEngine.get("/api/users") { ... }
+
+// Or using the DSL
+MockEngine.get {
+    request {
+        path equalTo "/api/users"
+    }
+    ...
+}
+
+// Regex pattern matching
+MockEngine.get {
+    request {
+        path like "/api/users/[0-9]+"
+    }
+    response {
+        status(HttpStatusCode.OK)
+    }
+}
+
+// Substring matching
+MockEngine.get {
+    request {
+        path containing "/users/"
+    }
+    ...
+}
+```
+
 ### Query Parameter Matching
 
-Match requests by query parameters:
+Match requests by query parameters using the fluent DSL:
 
 ```kotlin
 MockEngine.get("/api/users") {
     request {
-        queryParams {
-            param("page", "1")
-            param("limit", "10")
-        }
+        queryParams have "page" equalTo "1"
+        queryParams have "limit" equalTo "10"
     }
     response {
         status(HttpStatusCode.OK)
@@ -105,51 +172,56 @@ MockEngine.get("/api/users") {
 // Matches: GET /api/users?limit=10&page=1  (order doesn't matter)
 ```
 
-Ignore extra query parameters:
+By default, extra query parameters are ignored. Use `strictQueryParams()` to require exact parameter matching, 
+but specific fields can still be ignored:
 
 ```kotlin
 MockEngine.get("/api/users") {
     request {
-        queryParams(ignoreUnknownParams = true) {
-            param("page", "1")
-        }
+        queryParams have "page" equalTo "1"
+        queryParams ignore "timestamp"
+        strictQueryParams() // Fail if request has extra params
+    }
+    ...
+}
+```
+
+### Header Matching
+
+Match requests by headers:
+
+```kotlin
+MockEngine.get("/api/users") {
+    request {
+        headers have "Authorization" equalTo "Bearer token123"
+        headers have "Accept" containing "application/json"
     }
     response {
         status(HttpStatusCode.OK)
     }
 }
-
-// Matches: GET /api/users?page=1&anyOtherParam=value
 ```
 
-Ignore specific parameters (e.g., timestamps):
+Verify a condition is not true by using `dontHave`:
 
 ```kotlin
 MockEngine.get("/api/users") {
     request {
-        queryParams {
-            param("page", "1")
-            param("timestamp", "ignored")
-            ignoreParam("timestamp")
-        }
+        headers dontHave "X-Custom-Header" equalTo "forbidden-value"
     }
-    response {
-        status(HttpStatusCode.OK)
-    }
+    ...
 }
 ```
 
 ### Form URL-Encoded Body Matching
 
-Match form data in POST requests:
+Match form data in POST requests using the fluent DSL:
 
 ```kotlin
 MockEngine.post("/api/login") {
     request {
-        formBody {
-            param("username", "john")
-            param("password", "secret")
-        }
+        formParams have "username" equalTo "john"
+        formParams have "password" equalTo "secret"
     }
     response {
         status(HttpStatusCode.OK)
@@ -160,37 +232,29 @@ MockEngine.post("/api/login") {
 // Parameter order doesn't matter
 ```
 
-Ignore extra form fields:
+Ignore specific fields (e.g., timestamps):
 
 ```kotlin
-MockEngine.post("/api/login") {
+MockEngine.post("/api/data") {
     request {
-        formBody(ignoreUnknownKeys = true) {
-            param("username", "john")
-        }
+        formParams have "name" equalTo "test"
+        formParams ignore "timestamp"
     }
     response {
         status(HttpStatusCode.OK)
     }
 }
-
-// Matches even if request has additional fields
 ```
 
-Ignore specific fields:
+By default, extra form fields are ignored. Use `strictFormParams()` to require exact field matching:
 
 ```kotlin
-MockEngine.post("/api/data") {
+MockEngine.post("/api/login") {
     request {
-        formBody {
-            param("name", "test")
-            param("timestamp", "ignored")
-            ignoreField("timestamp")
-        }
+        formParams have "username" equalTo "john"
+        strictFormParams() // Fail if request has extra fields
     }
-    response {
-        status(HttpStatusCode.OK)
-    }
+    ...
 }
 ```
 
@@ -202,7 +266,7 @@ Use `matching` for custom request validation:
 MockEngine.get("/api/users") {
     request {
         matching { request ->
-            request.url.parameters["id"] == "123"
+            request.url.parameters["id"]?.toIntOrNull() in 1..100
         }
     }
     response {
@@ -349,19 +413,19 @@ client.post("http://localhost/api/bookings")
 
 // Verify exact count
 MockEngine.verify(count = 2) {
-    method(HttpMethod.Post)
-    path("/api/bookings")
+    method equalTo HttpMethod.Post
+    path equalTo "/api/bookings"
 }
 
 // Verify at least one request was made (no count = at least 1)
 MockEngine.verify {
-    method(HttpMethod.Get)
-    path("/api/users")
+    method equalTo HttpMethod.Get
+    path equalTo "/api/users"
 }
 
 // Verify no requests were made
 MockEngine.verify(count = 0) {
-    method(HttpMethod.Delete)
+    method equalTo HttpMethod.Delete
 }
 ```
 
@@ -373,8 +437,8 @@ client.get("http://localhost/api/users") {
 }
 
 MockEngine.verify(count = 1) {
-    path("/api/users")
-    header("Authorization", "Bearer token123")
+    path equalTo "/api/users"
+    headers have "Authorization" equalTo "Bearer token123"
 }
 ```
 
@@ -384,11 +448,9 @@ Verify with query parameters:
 client.get("http://localhost/api/users?page=1&limit=10")
 
 MockEngine.verify(count = 1) {
-    path("/api/users")
-    queryParams {
-        param("page", "1")
-        param("limit", "10")
-    }
+    path equalTo "/api/users"
+    queryParams have "page" equalTo "1"
+    queryParams have "limit" equalTo "10"
 }
 ```
 
@@ -397,8 +459,8 @@ Access recorded requests directly:
 ```kotlin
 val requests = MockEngine.requests()
 assertEquals(2, requests.size)
-assertEquals(HttpMethod.Post, requests[0].method)
-assertEquals("/api/users", requests[0].url.encodedPath)
+assertEquals(HttpMethod.Post, requests[0].request.method)
+assertEquals("/api/users", requests[0].request.url.encodedPath)
 ```
 
 ### State Management
