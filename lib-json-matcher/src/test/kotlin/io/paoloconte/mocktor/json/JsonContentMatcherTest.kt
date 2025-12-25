@@ -148,4 +148,44 @@ class JsonContentMatcherTest {
         """.trimIndent()
         assertIs<MatchResult.Match>(matcher.matches(json.toByteArray(), json.toByteArray()))
     }
+
+    @Test
+    fun `ignoreUnknownKeys allows extra keys in body`() {
+        val matcherWithIgnore = JsonContentMatcher(ignoreUnknownKeys = true)
+        val body = """{"name": "test", "extra": "value", "another": 123}"""
+        val target = """{"name": "test"}"""
+        assertIs<MatchResult.Match>(matcherWithIgnore.matches(body.toByteArray(), target.toByteArray()))
+    }
+
+    @Test
+    fun `null values are considered as missing`() {
+        val matcherWithIgnore = JsonContentMatcher(ignoreUnknownKeys = false)
+        val body = """{"name": "test"}"""
+        val target = """{"name": "test", "extra": null}"""
+        assertIs<MatchResult.Match>(matcherWithIgnore.matches(body.toByteArray(), target.toByteArray()))
+    }
+
+    @Test
+    fun `ignoreUnknownKeys still requires expected keys to be present`() {
+        val matcherWithIgnore = JsonContentMatcher(ignoreUnknownKeys = true)
+        val body = """{"extra": "value"}"""
+        val target = """{"name": "test"}"""
+        assertIs<MatchResult.Mismatch>(matcherWithIgnore.matches(body.toByteArray(), target.toByteArray()))
+    }
+
+    @Test
+    fun `ignoreUnknownKeys works with nested objects`() {
+        val matcherWithIgnore = JsonContentMatcher(ignoreUnknownKeys = true)
+        val body = """{"outer": {"inner": "value", "extra": 123}, "topExtra": true}"""
+        val target = """{"outer": {"inner": "value"}}"""
+        assertIs<MatchResult.Match>(matcherWithIgnore.matches(body.toByteArray(), target.toByteArray()))
+    }
+
+    @Test
+    fun `ignoreUnknownKeys combined with ignoreFields`() {
+        val matcherWithBoth = JsonContentMatcher(ignoreFields = setOf("timestamp"), ignoreUnknownKeys = true)
+        val body = """{"name": "test", "timestamp": "2024-01-01", "extra": "value"}"""
+        val target = """{"name": "test", "timestamp": "ignored"}"""
+        assertIs<MatchResult.Match>(matcherWithBoth.matches(body.toByteArray(), target.toByteArray()))
+    }
 }

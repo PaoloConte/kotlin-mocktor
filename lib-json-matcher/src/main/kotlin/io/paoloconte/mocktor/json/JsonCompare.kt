@@ -5,7 +5,12 @@ import io.paoloconte.mocktor.MatchResult.Match
 import io.paoloconte.mocktor.MatchResult.Mismatch
 import kotlinx.serialization.json.*
 
-internal fun JsonElement.compareWith(expected: JsonElement?, path: String = "$", ignoreFields: Set<String> = emptySet()): MatchResult {
+internal fun JsonElement.compareWith(
+    expected: JsonElement?,
+    path: String = "$",
+    ignoreFields: Set<String> = emptySet(),
+    ignoreUnknownKeys: Boolean = false
+): MatchResult {
     val equal = when (this) {
         is JsonArray -> {
             if (expected !is JsonArray)
@@ -13,7 +18,7 @@ internal fun JsonElement.compareWith(expected: JsonElement?, path: String = "$",
             if (expected.size != this.size)
                 return Mismatch("Arrays at $path have different sizes")
             this.forEachIndexed { i, v ->
-                val match = v.compareWith(expected[i], "$path[$i]", ignoreFields)
+                val match = v.compareWith(expected[i], "$path[$i]", ignoreFields, ignoreUnknownKeys)
                 if (match !is Match) {
                     return match
                 }
@@ -24,11 +29,13 @@ internal fun JsonElement.compareWith(expected: JsonElement?, path: String = "$",
         is JsonObject -> {
             if (expected !is JsonObject)
                 return Mismatch("Expecting an object at path $path")
-            if (expected.count { it.value !is JsonNull } != this.count { it.value !is JsonNull })
+            if (!ignoreUnknownKeys && expected.count { it.value !is JsonNull } != this.count { it.value !is JsonNull })
                 return Mismatch("Objects at $path have mismatched keys ${this.keys.plus(expected.keys).minus(this.keys.intersect(expected.keys))}")
-            this.entries.forEach { (k, v) ->
+            expected.entries.forEach { (k, v) ->
                 if (ignoreFields.contains(k)) return@forEach
-                val match = v.compareWith(expected[k], "$path.$k", ignoreFields)
+                if (v is JsonNull) return@forEach // null in expected is treated as optional
+                val actual = this[k] ?: return Mismatch("Missing key '$k' at path $path")
+                val match = actual.compareWith(v, "$path.$k", ignoreFields, ignoreUnknownKeys)
                 if (match is Mismatch) {
                     return match
                 }
