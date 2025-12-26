@@ -179,7 +179,7 @@ class MockEngineTest {
     fun `matches POST request with content type`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                contentType(ContentType.Application.Json)
+                contentType equalTo ContentType.Application.Json
             }
             response {
                 status(HttpStatusCode.Created)
@@ -219,7 +219,7 @@ class MockEngineTest {
     fun `does not match when content type differs`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                contentType(ContentType.Text.Xml)
+                contentType equalTo ContentType.Text.Xml
             }
             response {
                 status(HttpStatusCode.Created)
@@ -349,7 +349,7 @@ class MockEngineTest {
     fun `matches request with body content`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                body("""{"name": "test"}""")
+                body equalTo """{"name": "test"}"""
             }
             response {
                 status(HttpStatusCode.Created)
@@ -367,7 +367,7 @@ class MockEngineTest {
     fun `does not match when body differs`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                body("""{"name": "test"}""")
+                body equalTo """{"name": "test"}"""
             }
             response {
                 status(HttpStatusCode.Created)
@@ -484,7 +484,7 @@ class MockEngineTest {
     fun `matches request body from resource file`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                bodyFromResource("/fixtures/request.json")
+                body equalToResource "/fixtures/request.json"
             }
             response {
                 status(HttpStatusCode.Created)

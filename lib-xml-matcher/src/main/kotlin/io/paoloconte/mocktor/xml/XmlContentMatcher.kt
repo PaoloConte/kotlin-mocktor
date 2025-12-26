@@ -7,10 +7,12 @@ import org.xmlunit.builder.DiffBuilder
 import org.xmlunit.diff.DefaultNodeMatcher
 import org.xmlunit.diff.ElementSelectors
 
-object XmlContentMatcher: ContentMatcher {
+class XmlContentMatcher(
+    private val target: ByteArray,
+): ContentMatcher {
     private val logger = LoggerFactory.getLogger(XmlContentMatcher::class.java)
 
-    override fun matches(body: ByteArray, target: ByteArray): MatchResult {
+    override fun matches(body: ByteArray): MatchResult {
         val diff = try {
             DiffBuilder.compare(body)
                 .withTest(target)

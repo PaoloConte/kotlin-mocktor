@@ -1,5 +1,7 @@
 package io.paoloconte.mocktor.valueMatchers
 
+import io.ktor.http.ContentType
+
 open class Matchable<T>(val negate: Boolean = false) {
     internal var matcher: ValueMatcher<T>? = null
 
@@ -16,7 +18,7 @@ open class Matchable<T>(val negate: Boolean = false) {
     }
 }
 
-class StringMatchable(negate: Boolean = false) : Matchable<String>(negate) {
+open class StringMatchable(negate: Boolean = false) : Matchable<String>(negate) {
     infix fun like(regex: String) {
         matcher = LikeValueMatcher(regex)
     }
@@ -33,4 +35,14 @@ class StringMatchable(negate: Boolean = false) : Matchable<String>(negate) {
         matcher = NotContainsValueMatcher(other)
     }
 
+}
+
+class ContentTypesMatchable(negate: Boolean = false) : StringMatchable(negate) {
+    infix fun equalTo(other: ContentType) {
+        matcher = EqualValueMatcher(other.toString())
+    }
+    
+    infix fun notEqualTo(other: ContentType) {
+        matcher = NotEqualValueMatcher(other.toString())
+    }
 }

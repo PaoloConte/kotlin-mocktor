@@ -1,22 +1,25 @@
 package io.paoloconte.mocktor.json
 
 import io.paoloconte.mocktor.RequestMatcher
+import io.paoloconte.mocktor.valueMatchers.BodyMatchable
 import kotlin.String
 
-fun RequestMatcher.Builder.RequestBuilder.jsonBodyFromResource(
+context(builder: RequestMatcher.Builder.RequestBuilder)
+infix fun BodyMatchable.equalToJsonResource(
     path: String,
-    ignoreFields: Set<String> = emptySet(),
-    ignoreUnknownKeys: Boolean = false
-) {
-    bodyFromResource(path)
-    withContentMatcher(JsonContentMatcher(ignoreFields, ignoreUnknownKeys))
+): JsonContentMatcher {
+    val bytes = (this.javaClass.getResource(path)?.readBytes()
+                    ?: error("Unable to load resource file '$path'"))
+    val contentMatcher = JsonContentMatcher(bytes)
+    builder.withBodyMatcher(contentMatcher)
+    return contentMatcher
 }
 
-fun RequestMatcher.Builder.RequestBuilder.jsonBody(
-    content: String,
-    ignoreFields: Set<String> = emptySet(),
-    ignoreUnknownKeys: Boolean = false
-) {
-    body(content)
-    withContentMatcher(JsonContentMatcher(ignoreFields, ignoreUnknownKeys))
+context(builder: RequestMatcher.Builder.RequestBuilder)
+infix fun BodyMatchable.equalToJson(
+    content: String
+): JsonContentMatcher {
+    val contentMatcher = JsonContentMatcher(content.toByteArray())
+    builder.withBodyMatcher(contentMatcher)
+    return contentMatcher
 }

@@ -3,5 +3,5 @@ package io.paoloconte.mocktor.contentMatchers
 import io.paoloconte.mocktor.MatchResult
 
 interface ContentMatcher {
-    fun matches(body: ByteArray, target: ByteArray): MatchResult
+    fun matches(body: ByteArray): MatchResult
 }

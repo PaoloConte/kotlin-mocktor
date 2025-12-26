@@ -25,7 +25,7 @@ class FormUrlEncodedContentMatcher: ContentMatcher {
     fun isEmpty() = params.isEmpty() && ignoreUnknownKeys
     fun isNotEmpty() = !isEmpty()
 
-    override fun matches(body: ByteArray, target: ByteArray): MatchResult {
+    override fun matches(body: ByteArray): MatchResult {
         val bodyParams = parseFormUrlEncoded(body.decodeToString())
             .getOrElse { return MatchResult.Mismatch("Unable to parse body: ${it.message}") }
 

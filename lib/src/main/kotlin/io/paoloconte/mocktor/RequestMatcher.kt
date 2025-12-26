@@ -8,6 +8,8 @@ import io.paoloconte.mocktor.MatchResult.Mismatch
 import io.paoloconte.mocktor.contentMatchers.ContentMatcher
 import io.paoloconte.mocktor.contentMatchers.DefaultContentMatcher
 import io.paoloconte.mocktor.contentMatchers.FormUrlEncodedContentMatcher
+import io.paoloconte.mocktor.valueMatchers.BodyMatchable
+import io.paoloconte.mocktor.valueMatchers.ContentTypesMatchable
 import io.paoloconte.mocktor.valueMatchers.HeadersMatcher
 import io.paoloconte.mocktor.valueMatchers.Matchable
 import io.paoloconte.mocktor.valueMatchers.QueryParamsMatcher
@@ -19,8 +21,7 @@ class RequestMatcher(
     val path: ValueMatcher<String>?,
     val matcher: ((HttpRequestData) -> Boolean)?,
     val requestContentType: ValueMatcher<String>?,
-    val requestContent: ByteArray?,
-    val contentMatcher: ContentMatcher,
+    val contentMatcher: ContentMatcher?,
     val responseStatus: HttpStatusCode,
     val responseContentType: ContentType,
     val responseContent: ((HttpRequestData) -> ByteArray)?,
@@ -55,9 +56,8 @@ class RequestMatcher(
             path = request.path.matcher,
             method = request.method.matcher,
             matcher = request.matcher,
-            contentMatcher = request.contentMatcher,
+            contentMatcher = request.body.matcher,
             requestContentType = request.contentType.matcher,
-            requestContent = request.body,
             requestHeaders = request.headers,
             responseStatus = response.status,
             responseContentType = response.contentType,
@@ -69,8 +69,6 @@ class RequestMatcher(
             queryParams = request.queryParams,
             formParams = request.formParams,
         )
-
-
         
         class RequestBuilder(
             initialMethod: HttpMethod? = null,
@@ -80,32 +78,18 @@ class RequestMatcher(
             val path = StringMatchable().apply { initialPath?.let { this equalTo it } }
             val queryParams = QueryParamsMatcher()
             val formParams = FormUrlEncodedContentMatcher()
-            val contentType: StringMatchable = StringMatchable()
+            val contentType = ContentTypesMatchable()
             val headers = HeadersMatcher()
+            var body = BodyMatchable()
             internal var matcher: ((HttpRequestData) -> Boolean)? = null
-            internal var body: ByteArray? = null
-            internal var contentMatcher: ContentMatcher = DefaultContentMatcher
             internal var expectedState: String? = null
-
-            fun contentType(contentType: ContentType) {
-                this.contentType equalTo contentType.toString()
-            }
-
+            
             fun matching(matcher: (HttpRequestData) -> Boolean) {
                 this.matcher = matcher
             }
 
-            fun bodyFromResource(path: String) {
-                body = this.javaClass.getResource(path)?.readBytes()
-                    ?: error("Unable to load resource file '$path'")
-            }
-
-            fun body(content: String) {
-                body = content.toByteArray(Charsets.UTF_8)
-            }
-
-            fun withContentMatcher(contentMatcher: ContentMatcher) {
-                this.contentMatcher = contentMatcher
+            fun withBodyMatcher(contentMatcher: ContentMatcher) {
+                this.body.matcher = contentMatcher
             }
 
             fun strictQueryParams() {
@@ -194,16 +178,16 @@ class RequestMatcher(
         }
 
         if (formParams.isNotEmpty()) {
-            val result = formParams.matches(data.bodyAsBytesOrNull() ?: ByteArray(0), ByteArray(0))
+            val result = formParams.matches(data.bodyAsBytesOrNull() ?: ByteArray(0))
             if (result is Mismatch) return result
         }
 
         if (matcher != null && !matcher(data))
             return Mismatch("Custom matcher failed")
 
-        if (requestContent != null) {
+        if (contentMatcher != null) {
             val body = (data.body as? OutgoingContent.ByteArrayContent)?.bytes() ?: return Mismatch("Body mismatch: request body is not available as ByteArray")
-            return contentMatcher.matches(body, requestContent)
+            return contentMatcher.matches(body)
         }
 
         return Match
@@ -215,7 +199,7 @@ class RequestMatcher(
         if (path != null) parts.add("path=$path")
         if (requestHeaders.isNotEmpty()) parts.add("headers=<specified>")
         if (queryParams.isNotEmpty()) parts.add("queryParams=<specified>")
-        if (requestContent != null) parts.add("body=<specified>")
+        if (contentMatcher != null) parts.add("body=<specified>")
         return parts.joinToString(", ").ifEmpty { "any" }
     }
 

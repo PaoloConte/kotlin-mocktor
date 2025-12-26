@@ -6,11 +6,22 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 class JsonContentMatcher(
-    private val ignoreFields: Set<String> = emptySet(),
-    private val ignoreUnknownKeys: Boolean = false
+    private val target: ByteArray,
+    var ignoreFields: Set<String> = emptySet(),
+    var ignoreUnknownKeys: Boolean = false
 ): ContentMatcher {
-
-    override fun matches(body: ByteArray, target: ByteArray): MatchResult {
+    
+    infix fun withIgnoreFields(fields: Set<String>): JsonContentMatcher {
+        ignoreFields = fields
+        return this
+    }
+    
+    infix fun withIgnoreUnknownKeys(ignore: Boolean): JsonContentMatcher {
+        ignoreUnknownKeys = ignore
+        return this
+    }
+    
+    override fun matches(body: ByteArray): MatchResult {
         val jsonA = Json.parseToJsonElementOrNull(body.decodeToString())
             .getOrElse { return MatchResult.Mismatch("Unable to decode body: $it")  }
         val jsonB = Json.parseToJsonElementOrNull(target.decodeToString())

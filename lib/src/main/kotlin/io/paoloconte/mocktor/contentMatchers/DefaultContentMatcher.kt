@@ -4,9 +4,9 @@ import io.paoloconte.mocktor.MatchResult
 import io.paoloconte.mocktor.MatchResult.Match
 import io.paoloconte.mocktor.MatchResult.Mismatch
 
-object DefaultContentMatcher: ContentMatcher {
-    override fun matches(body: ByteArray, target: ByteArray): MatchResult {
-        return if (body.contentEquals(target))
+class DefaultContentMatcher(val bytes: ByteArray): ContentMatcher {
+    override fun matches(body: ByteArray): MatchResult {
+        return if (body.contentEquals(bytes))
             Match
         else
             Mismatch("Byte content mismatch")

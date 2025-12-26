@@ -23,7 +23,7 @@ class JsonContentMatcherMockEngineTest {
     fun `matches JSON body with different key order`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                jsonBody("""{"name": "John", "age": 30}""")
+                body equalToJson """{"name": "John", "age": 30}"""
             }
             response {
                 status(HttpStatusCode.Created)
@@ -41,7 +41,7 @@ class JsonContentMatcherMockEngineTest {
     fun `does not match JSON body with different values`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                jsonBody("""{"name": "John", "age": 30}""")
+                body equalToJson """{"name": "John", "age": 30}"""
             }
             response {
                 status(HttpStatusCode.OK)
@@ -59,7 +59,7 @@ class JsonContentMatcherMockEngineTest {
     fun `matches JSON body from resource file with different key order`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                jsonBodyFromResource("/fixtures/request.json")
+                body equalToJsonResource "/fixtures/request.json"
             }
             response {
                 status(HttpStatusCode.Created)
@@ -77,10 +77,8 @@ class JsonContentMatcherMockEngineTest {
     fun `matches JSON body ignoring multiple fields`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                jsonBody(
-                    """{"name": "John", "age": 30, "createdAt": "2024-01-01", "updatedAt": "2024-01-02"}""",
-                    ignoreFields = setOf("createdAt", "updatedAt")
-                )
+                val json = """{"name": "John", "age": 30, "createdAt": "2024-01-01", "updatedAt": "2024-01-02"}"""
+                body equalToJson json withIgnoreFields setOf("createdAt", "updatedAt")
             }
             response {
                 status(HttpStatusCode.Created)
@@ -98,7 +96,8 @@ class JsonContentMatcherMockEngineTest {
     fun `does not match JSON body when non-ignored fields differ`() = runTest {
         MockEngine.post("/api/users") {
             request {
-                jsonBody("""{"name": "John", "age": 30, "timestamp": "2024-01-01"}""", ignoreFields = setOf("timestamp"))
+                val json = """{"name": "John", "age": 30, "timestamp": "2024-01-01"}"""
+                body equalToJson json withIgnoreFields  setOf("timestamp")
             }
             response {
                 status(HttpStatusCode.Created)

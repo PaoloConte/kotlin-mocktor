@@ -26,13 +26,13 @@ Add the dependencies to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    testImplementation("io.paoloconte:mocktor:2.0.0")
+    testImplementation("io.paoloconte:mocktor:2.1.0")
 
     // Optional: JSON body matching
-    testImplementation("io.paoloconte:mocktor-json:2.0.0")
+    testImplementation("io.paoloconte:mocktor-json:2.1.0")
 
     // Optional: XML body matching
-    testImplementation("io.paoloconte:mocktor-xml:2.0.0")
+    testImplementation("io.paoloconte:mocktor-xml:2.1.0")
 }
 ```
 
@@ -87,7 +87,7 @@ Match exact request body content:
 ```kotlin
 MockEngine.post("/api/users") {
     request {
-        body("""{"name": "John"}""")
+        body equalTo """{"name": "John"}"""
     }
     response {
         status(HttpStatusCode.Created)
@@ -294,11 +294,11 @@ MockEngine.post("/api/users") {
 Use the JSON matcher for semantic JSON comparison (ignores key ordering and whitespace):
 
 ```kotlin
-import io.paoloconte.mocktor.json.jsonBody
+import io.paoloconte.mocktor.json.equalToJson
 
 MockEngine.post("/api/users") {
     request {
-        jsonBody("""{"name": "John", "age": 30}""")
+        body equalToJson """{"name": "John", "age": 30}"""
     }
     response {
         status(HttpStatusCode.Created)
@@ -311,16 +311,56 @@ client.post("/api/users") {
 }
 ```
 
+#### Ignoring Fields
+
+Ignore specific fields during JSON comparison (useful for timestamps, IDs, etc.):
+
+```kotlin
+MockEngine.post("/api/users") {
+    request {
+        body equalToJson """{"name": "John"}""" withIgnoreFields setOf("createdAt")
+    }
+    response {
+        status(HttpStatusCode.Created)
+    }
+}
+
+// This request will match even with different createdAt value:
+client.post("/api/users") {
+    setBody("""{"name": "John", "createdAt": "2025-12-26"}""")
+}
+```
+
+#### Ignoring Unknown Keys
+
+Ignore extra keys in the request body that aren't present in the expected JSON:
+
+```kotlin
+MockEngine.post("/api/users") {
+    request {
+        body equalToJson """{"name": "John"}""" withIgnoreUnknownKeys true
+    }
+    response {
+        status(HttpStatusCode.Created)
+    }
+}
+
+// This request will match even with extra fields:
+client.post("/api/users") {
+    setBody("""{"name": "John", "age": 30, "extra": "field"}""")
+}
+```
+
 ### XML Content Matching
 
 Use the XML matcher for semantic XML comparison (ignores whitespace and comments):
 
 ```kotlin
-import io.paoloconte.mocktor.xml.xmlBody
+import io.paoloconte.mocktor.xml.equalToXml
 
 MockEngine.post("/api/data") {
     request {
-        xmlBody("<root><item>value</item></root>")
+        body equalToXml "<root><item>value</item></root>"
     }
     response {
         status(HttpStatusCode.OK)
@@ -356,7 +396,7 @@ Load request or response body from classpath resource files:
 ```kotlin
 MockEngine.post("/api/users") {
     request {
-        bodyFromResource("/fixtures/request.json")
+        body equalToResource "/fixtures/request.json"
     }
     response {
         bodyFromResource("/fixtures/response.json")
@@ -366,14 +406,14 @@ MockEngine.post("/api/users") {
 
 ### Loading JSON Body from Resources
 
-Use `jsonBodyFromResource` to load JSON from a resource file and use semantic JSON comparison:
+Use `equalToJsonResource` to load JSON from a resource file and use semantic JSON comparison:
 
 ```kotlin
-import io.paoloconte.mocktor.json.jsonBodyFromResource
+import io.paoloconte.mocktor.json.equalToJsonResource
 
 MockEngine.post("/api/users") {
     request {
-        jsonBodyFromResource("/fixtures/request.json")
+        body equalToJsonResource "/fixtures/request.json"
     }
     response {
         status(HttpStatusCode.Created)
@@ -385,14 +425,14 @@ MockEngine.post("/api/users") {
 
 ### Loading XML Body from Resources
 
-Use `xmlBodyFromResource` to load XML from a resource file and use semantic XML comparison:
+Use `equalToXmlResource` to load XML from a resource file and use semantic XML comparison:
 
 ```kotlin
-import io.paoloconte.mocktor.xml.xmlBodyFromResource
+import io.paoloconte.mocktor.xml.equalToXmlResource
 
 MockEngine.post("/api/data") {
     request {
-        xmlBodyFromResource("/fixtures/request.xml")
+        body equalToXmlResource "/fixtures/request.xml"
     }
     response {
         status(HttpStatusCode.OK)
@@ -509,15 +549,15 @@ This field resets if `clear()` is called.
 
 ## Custom Content Matchers
 
- Implement the `ContentMatcher` interface to create custom logic for comparing the request body sent by the client against the expected body specified in the mock.
+ Implement the `ContentMatcher` interface to create custom matching logic for request bodies. The expected value is stored internally in the matcher, and the `matches` method receives only the actual request body.
 
  ```kotlin
- import io.paoloconte.mocktor.ContentMatcher
+ import io.paoloconte.mocktor.contentMatchers.ContentMatcher
  import io.paoloconte.mocktor.MatchResult
 
- // Custom matcher that compares body and expected value case-insensitively
- val caseInsensitiveMatcher = object : ContentMatcher {
-     override fun matches(body: ByteArray, expected: ByteArray): MatchResult {
+ // Custom matcher that compares body case-insensitively
+ class CaseInsensitiveMatcher(private val expected: ByteArray) : ContentMatcher {
+     override fun matches(body: ByteArray): MatchResult {
          val bodyString = body.decodeToString().lowercase()
          val expectedString = expected.decodeToString().lowercase()
 
@@ -530,8 +570,7 @@ This field resets if `clear()` is called.
 
  MockEngine.post("/api/data") {
      request {
-         body("HELLO WORLD")  // expected body to compare against
-         withContentMatcher(caseInsensitiveMatcher)
+         withBodyMatcher(CaseInsensitiveMatcher("HELLO WORLD".toByteArray()))
      }
      response {
          status(HttpStatusCode.OK)

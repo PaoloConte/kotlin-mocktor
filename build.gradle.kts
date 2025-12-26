@@ -2,6 +2,7 @@ import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
 import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 
 plugins {
@@ -10,7 +11,7 @@ plugins {
 }
 
 group = "io.paoloconte"
-version = "2.0.0"
+version = "2.1.0"
 
 subprojects {
     group = rootProject.group
@@ -23,6 +24,12 @@ subprojects {
         mavenCentral()
     }
 
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xcontext-parameters")
+        }
+    }
+
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
     }
@@ -32,10 +39,12 @@ subprojects {
     }
 
     configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
-        configure(KotlinJvm(
-            javadocJar = JavadocJar.Empty(),
-            sourcesJar = true,
-        ))
+        configure(
+            KotlinJvm(
+                javadocJar = JavadocJar.Empty(),
+                sourcesJar = true,
+            )
+        )
 
         pom {
             inceptionYear.set("2025")
