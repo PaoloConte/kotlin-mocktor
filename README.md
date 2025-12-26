@@ -95,6 +95,40 @@ MockEngine.post("/api/users") {
 }
 ```
 
+Match body containing a substring:
+
+```kotlin
+MockEngine.post("/api/users") {
+    request {
+        body containing "\"name\""
+    }
+}
+
+// Case-insensitive matching
+MockEngine.post("/api/users") {
+    request {
+        body containing "\"NAME\"" ignoreCase true
+    }
+}
+```
+
+Match body with regex:
+
+```kotlin
+MockEngine.post("/api/users") {
+    request {
+        body like ".*\"name\":\"[A-Za-z]+\".*"
+    }
+}
+
+// Negative match
+MockEngine.post("/api/users") {
+    request {
+        body notLike ".*\"admin\".*"
+    }
+}
+```
+
 ### Value Matchers
 
 Mocktor provides fluent value matchers for paths, query parameters, headers, and more:
@@ -318,7 +352,7 @@ Ignore specific fields during JSON comparison (useful for timestamps, IDs, etc.)
 ```kotlin
 MockEngine.post("/api/users") {
     request {
-        body equalToJson """{"name": "John"}""" withIgnoreFields setOf("createdAt")
+        body equalToJson """{"name": "John"}""" ignoreFields setOf("createdAt")
     }
     response {
         status(HttpStatusCode.Created)
@@ -338,7 +372,7 @@ Ignore extra keys in the request body that aren't present in the expected JSON:
 ```kotlin
 MockEngine.post("/api/users") {
     request {
-        body equalToJson """{"name": "John"}""" withIgnoreUnknownKeys true
+        body equalToJson """{"name": "John"}""" ignoreUnknownKeys true
     }
     response {
         status(HttpStatusCode.Created)

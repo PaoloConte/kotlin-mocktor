@@ -11,12 +11,12 @@ class JsonContentMatcher(
     var ignoreUnknownKeys: Boolean = false
 ): ContentMatcher {
     
-    infix fun withIgnoreFields(fields: Set<String>): JsonContentMatcher {
+    infix fun ignoreFields(fields: Set<String>): JsonContentMatcher {
         ignoreFields = fields
         return this
     }
     
-    infix fun withIgnoreUnknownKeys(ignore: Boolean): JsonContentMatcher {
+    infix fun ignoreUnknownKeys(ignore: Boolean): JsonContentMatcher {
         ignoreUnknownKeys = ignore
         return this
     }

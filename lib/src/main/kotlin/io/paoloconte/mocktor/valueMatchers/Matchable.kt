@@ -27,12 +27,14 @@ open class StringMatchable(negate: Boolean = false) : Matchable<String>(negate) 
         matcher = NotLikeValueMatcher(regex)
     }
 
-    infix fun containing(other: String) {
-        matcher = ContainsValueMatcher(other)
+    infix fun containing(other: String): ContainsValueMatcher {
+        return ContainsValueMatcher(other)
+            .also { matcher = it }
     }
 
-    infix fun notContaining(other: String) {
-        matcher = NotContainsValueMatcher(other)
+    infix fun notContaining(other: String): NotContainsValueMatcher {
+        return NotContainsValueMatcher(other)
+            .also { matcher = it }
     }
 
 }

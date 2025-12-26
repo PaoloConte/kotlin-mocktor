@@ -14,6 +14,24 @@ class BodyMatchable {
         matcher = DefaultContentMatcher(content)
     }
 
+    infix fun containing(substring: String): ContainsValueMatcher {
+        return ContainsValueMatcher(substring)
+            .also { matcher = it }
+    }
+
+    infix fun notContaining(other: String): NotContainsValueMatcher {
+        return NotContainsValueMatcher(other)
+            .also { matcher = it }
+    }
+
+    infix fun like(regex: String) {
+        matcher = LikeValueMatcher(regex)
+    }
+
+    infix fun notLike(regex: String) {
+        matcher = NotLikeValueMatcher(regex)
+    }
+
     infix fun equalToResource(path: String) {
         val bytes = (this.javaClass.getResource(path)?.readBytes()
             ?: error("Unable to load resource file '$path'"))

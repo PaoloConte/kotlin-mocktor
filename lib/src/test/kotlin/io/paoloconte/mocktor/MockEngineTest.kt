@@ -66,7 +66,6 @@ class MockEngineTest {
     fun `matches GET request by path`() = runTest {
         MockEngine.get("/api/users") {
             response {
-                status(HttpStatusCode.OK)
                 contentType("application/json")
                 body("""{"users": []}""")
             }
@@ -143,7 +142,6 @@ class MockEngineTest {
                 path equalTo "/api/users"
             }
             response {
-                status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
         }
@@ -152,7 +150,7 @@ class MockEngineTest {
             contentType(ContentType.Application.Json)
             setBody("""{"name": "test"}""")
         }
-        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("""{"id": 1}""", response.bodyAsText())
     }
 
@@ -163,7 +161,6 @@ class MockEngineTest {
                 path notEqualTo "/api/users"
             }
             response {
-                status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
         }
@@ -182,7 +179,6 @@ class MockEngineTest {
                 contentType equalTo ContentType.Application.Json
             }
             response {
-                status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
         }
@@ -191,7 +187,7 @@ class MockEngineTest {
             contentType(ContentType.Application.Json)
             setBody("""{"name": "test"}""")
         }
-        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("""{"id": 1}""", response.bodyAsText())
     }
 
@@ -202,7 +198,6 @@ class MockEngineTest {
                 contentType equalTo "application/json"
             }
             response {
-                status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
         }
@@ -211,7 +206,7 @@ class MockEngineTest {
             contentType(ContentType.Application.Json)
             setBody("""{"name": "test"}""")
         }
-        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("""{"id": 1}""", response.bodyAsText())
     }
 
@@ -222,7 +217,6 @@ class MockEngineTest {
                 contentType equalTo ContentType.Text.Xml
             }
             response {
-                status(HttpStatusCode.Created)
                 body("""{"id": 1}""")
             }
         }
@@ -238,7 +232,6 @@ class MockEngineTest {
     fun `matches PUT request`() = runTest {
         MockEngine.put("/api/users/1") {
             response {
-                status(HttpStatusCode.OK)
                 body("""{"updated": true}""")
             }
         }
@@ -267,7 +260,6 @@ class MockEngineTest {
     fun `matches PATCH request`() = runTest {
         MockEngine.patch("/api/users/1") {
             response {
-                status(HttpStatusCode.OK)
                 body("""{"patched": true}""")
             }
         }
@@ -280,11 +272,7 @@ class MockEngineTest {
 
     @Test
     fun `returns 404 when path does not match`() = runTest {
-        MockEngine.get("/api/users") {
-            response {
-                status(HttpStatusCode.OK)
-            }
-        }
+        MockEngine.get("/api/users") {}
 
         val response = client.get("http://localhost/api/other") {
             contentType(ContentType.Application.Json)
@@ -294,11 +282,7 @@ class MockEngineTest {
 
     @Test
     fun `returns 404 when method does not match`() = runTest {
-        MockEngine.get("/api/users") {
-            response {
-                status(HttpStatusCode.OK)
-            }
-        }
+        MockEngine.get("/api/users") {}
 
         val response = client.post("http://localhost/api/users") {
             contentType(ContentType.Application.Json)
@@ -315,7 +299,6 @@ class MockEngineTest {
                 }
             }
             response {
-                status(HttpStatusCode.OK)
                 body("""{"id": 123}""")
             }
         }
@@ -334,9 +317,6 @@ class MockEngineTest {
                     request.url.parameters["id"] == "123"
                 }
             }
-            response {
-                status(HttpStatusCode.OK)
-            }
         }
 
         val response = client.get("http://localhost/api/users?id=456") {
@@ -351,8 +331,20 @@ class MockEngineTest {
             request {
                 body equalTo """{"name": "test"}"""
             }
-            response {
-                status(HttpStatusCode.Created)
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `matches request with body content as byte array`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body equalTo """{"name": "test"}""".toByteArray()
             }
         }
 
@@ -360,7 +352,127 @@ class MockEngineTest {
             contentType(ContentType.Application.Json)
             setBody("""{"name": "test"}""")
         }
-        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `matches request with body containing susbtring`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body containing "\"test\""
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `matches request with body containing susbtring case insensitive`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body containing "\"TEST\"" ignoreCase true
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `does not match request with body containing substring if case mismatch`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body containing "\"TEST\"" 
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `does not match request with body not containing substring`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body notContaining "\"test\"" 
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `matches request with body not containing substring`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body notContaining "\"test\"" 
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "John"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `does not match request with body not matching regex`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body like ".*\"test\".*"
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "John"}""")
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `matches request with body not matching regex`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body notLike ".*\"test\".*"
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "John"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `matches request with body matching regex`() = runTest {
+        MockEngine.post("/api/users") {
+            request {
+                body like ".*\"test\".*"
+            }
+        }
+
+        val response = client.post("http://localhost/api/users") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name": "test"}""")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
     }
 
     @Test

@@ -78,7 +78,7 @@ class JsonContentMatcherMockEngineTest {
         MockEngine.post("/api/users") {
             request {
                 val json = """{"name": "John", "age": 30, "createdAt": "2024-01-01", "updatedAt": "2024-01-02"}"""
-                body equalToJson json withIgnoreFields setOf("createdAt", "updatedAt")
+                body equalToJson json ignoreFields setOf("createdAt", "updatedAt")
             }
             response {
                 status(HttpStatusCode.Created)
@@ -97,7 +97,7 @@ class JsonContentMatcherMockEngineTest {
         MockEngine.post("/api/users") {
             request {
                 val json = """{"name": "John", "age": 30, "timestamp": "2024-01-01"}"""
-                body equalToJson json withIgnoreFields  setOf("timestamp")
+                body equalToJson json ignoreFields  setOf("timestamp")
             }
             response {
                 status(HttpStatusCode.Created)
