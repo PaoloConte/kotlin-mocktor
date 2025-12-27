@@ -9,11 +9,43 @@ import io.ktor.util.date.*
 import io.ktor.utils.io.*
 import org.slf4j.LoggerFactory
 
+/**
+ * Represents a recorded HTTP call made through the [MockEngine].
+ *
+ * @property request The original HTTP request data.
+ * @property response The HTTP response data, or null if the request threw an exception.
+ */
 data class RecordedCall(
     val request: HttpRequestData,
     val response: HttpResponseData? = null
 )
 
+/**
+ * A mock HTTP client engine for Ktor that allows stubbing HTTP responses and verifying requests.
+ *
+ * MockEngine intercepts HTTP requests and returns predefined responses based on configured matchers.
+ * It also records all calls for later verification.
+ *
+ * Example usage:
+ * ```kotlin
+ * val client = HttpClient(MockEngineFactory)
+ *
+ * MockEngine.get("/users") {
+ *     response {
+ *         status(HttpStatusCode.OK)
+ *         body("""[{"id": 1, "name": "John"}]""")
+ *     }
+ * }
+ *
+ * // Make requests using the client...
+ *
+ * MockEngine.verify { path equalTo "/users" }
+ * MockEngine.clear()
+ * ```
+ *
+ * @see MockEngineFactory
+ * @see RequestMatcher
+ */
 object MockEngine: HttpClientEngineBase("mock-engine") {
 
     override val config: HttpClientEngineConfig = object : HttpClientEngineConfig() {}
@@ -28,11 +60,25 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
     private val handlers: MutableList<RequestMatcher> = mutableListOf()
     private val recordedCalls: MutableList<RecordedCall> = mutableListOf()
     private val defaultStatusCode = HttpStatusCode.NotFound
+
+    /**
+     * The HTTP status code returned when no handler matches a request.
+     * Defaults to [HttpStatusCode.NotFound].
+     */
     var noMatchStatusCode: HttpStatusCode = defaultStatusCode
 
+    /**
+     * The initial state value used for stateful request matching.
+     */
     const val INITIAL_STATE = "INITIAL_STATE"
     internal var state: String = INITIAL_STATE
 
+    /**
+     * Clears all registered handlers, recorded calls, resets the state to [INITIAL_STATE],
+     * and resets [noMatchStatusCode] to [HttpStatusCode.NotFound].
+     *
+     * Call this method between tests to ensure a clean state.
+     */
     fun clear() {
         handlers.clear()
         recordedCalls.clear()
@@ -40,34 +86,84 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         noMatchStatusCode = defaultStatusCode
     }
 
+    /**
+     * Registers a handler for GET requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun get(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Get, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for POST requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun post(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Post, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for PUT requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun put(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Put, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for DELETE requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun delete(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Delete, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for PATCH requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun patch(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Patch, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for HEAD requests.
+     *
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun head(path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(HttpMethod.Head, path).apply {  builder() }.build())
     }
 
+    /**
+     * Registers a handler for any HTTP method.
+     *
+     * @param method Optional HTTP method to match. If null, matches any method.
+     * @param path Optional URL path to match exactly. If null, matches any path.
+     * @param builder Configuration block for request matching and response definition.
+     */
     fun on(method: HttpMethod? = null, path: String? = null, builder: RequestMatcher.Builder.() -> Unit) {
         handlers.add(RequestMatcher.Builder(method, path).apply { builder() }.build())
     }
 
+    /**
+     * Verifies that requests matching the given criteria were made.
+     *
+     * @param count Expected number of matching requests. If null, verifies at least one match.
+     * @param builder Configuration block for request matching criteria.
+     * @throws AssertionError If the expected number of matching requests was not found.
+     */
     fun verify(count: Int? = null, builder: RequestMatcher.Builder.RequestBuilder.() -> Unit) {
         val matcher = RequestMatcher.Builder().request(builder).build()
         val matchingCalls = recordedCalls.filter { matcher.matches(it.request) is MatchResult.Match }
@@ -85,8 +181,11 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         }
     }
 
-    fun calls(): List<RecordedCall> = recordedCalls.toList()
-
+    /**
+     * Returns a list of all recorded calls made through this mock engine.
+     *
+     * @return An immutable copy of all recorded calls.
+     */
     fun requests(): List<RecordedCall> = recordedCalls.toList()
 
     @InternalAPI

@@ -4,25 +4,57 @@ import io.paoloconte.mocktor.MatchResult
 import io.paoloconte.mocktor.valueMatchers.StringMatchable
 import java.net.URLDecoder
 
+/**
+ * A content matcher for form-urlencoded request bodies.
+ *
+ * Example usage:
+ * ```kotlin
+ * request {
+ *     formParams have "username" equalTo "john"
+ *     formParams have "password" like ".*"
+ *     formParams dontHave "admin"
+ * }
+ * ```
+ */
 class FormUrlEncodedContentMatcher: ContentMatcher {
     private val params: MutableMap<String, MutableList<StringMatchable>> = mutableMapOf()
     internal var ignoreUnknownKeys: Boolean = true
 
+    /**
+     * Specifies that the form body should have a parameter with the given name.
+     *
+     * @param name The parameter name.
+     * @return A [StringMatchable] for defining the expected value.
+     */
     infix fun have(name: String): StringMatchable {
         return StringMatchable()
             .also { params.getOrPut(name, { mutableListOf() }).add(it) }
     }
-    
+
+    /**
+     * Specifies that the form body should not have a parameter with the given name.
+     *
+     * @param name The parameter name that should be absent.
+     * @return A [StringMatchable] for additional constraints.
+     */
     infix fun dontHave(name: String): StringMatchable {
         return StringMatchable(negate = true)
             .also { params.getOrPut(name, { mutableListOf() }).add(it) }
     }
 
+    /**
+     * Specifies that a parameter should be ignored during matching.
+     *
+     * @param name The parameter name to ignore.
+     */
     infix fun ignore(name: String) {
         params[name] = mutableListOf(StringMatchable().apply { ignore() })
     }
-    
+
+    /** Returns true if no parameters are configured and unknown keys are ignored. */
     fun isEmpty() = params.isEmpty() && ignoreUnknownKeys
+
+    /** Returns true if parameters are configured or unknown keys are not ignored. */
     fun isNotEmpty() = !isEmpty()
 
     override fun matches(body: ByteArray): MatchResult {

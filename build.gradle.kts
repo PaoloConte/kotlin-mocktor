@@ -8,6 +8,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.maven.publish) apply false
+    alias(libs.plugins.dokka)
+}
+
+repositories {
+    mavenCentral()
 }
 
 group = "io.paoloconte"
@@ -19,6 +24,7 @@ subprojects {
 
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.vanniktech.maven.publish")
+    apply(plugin = "org.jetbrains.dokka")
 
     repositories {
         mavenCentral()
@@ -41,7 +47,7 @@ subprojects {
     configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
         configure(
             KotlinJvm(
-                javadocJar = JavadocJar.Empty(),
+                javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
                 sourcesJar = true,
             )
         )
@@ -74,4 +80,14 @@ subprojects {
 
         signAllPublications()
     }
+}
+
+dependencies {
+    dokka(project(":lib"))
+    dokka(project(":lib-json-matcher"))
+    dokka(project(":lib-xml-matcher"))
+}
+
+dokka {
+    moduleName.set("Mocktor")
 }

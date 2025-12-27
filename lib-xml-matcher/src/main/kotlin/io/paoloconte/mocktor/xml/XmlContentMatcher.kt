@@ -7,6 +7,21 @@ import org.xmlunit.builder.DiffBuilder
 import org.xmlunit.diff.DefaultNodeMatcher
 import org.xmlunit.diff.ElementSelectors
 
+/**
+ * A content matcher for XML request bodies.
+ *
+ * Uses XMLUnit for semantic XML comparison, ignoring whitespace and comments.
+ * Elements are matched by name.
+ *
+ * Example usage:
+ * ```kotlin
+ * request {
+ *     body equalToXml "<root><item>value</item></root>"
+ * }
+ * ```
+ *
+ * @param target The expected XML content as bytes.
+ */
 class XmlContentMatcher(
     private val target: ByteArray,
 ): ContentMatcher {

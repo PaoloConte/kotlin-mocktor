@@ -4,6 +4,19 @@ import io.paoloconte.mocktor.RequestMatcher
 import io.paoloconte.mocktor.valueMatchers.BodyMatchable
 import kotlin.String
 
+/**
+ * Matches JSON bodies from a classpath resource file.
+ *
+ * Example:
+ * ```kotlin
+ * request {
+ *     body equalToJsonResource "/expected.json"
+ * }
+ * ```
+ *
+ * @param path The resource path to the expected JSON file.
+ * @return A [JsonContentMatcher] for additional configuration.
+ */
 context(builder: RequestMatcher.Builder.RequestBuilder)
 infix fun BodyMatchable.equalToJsonResource(
     path: String,
@@ -15,6 +28,21 @@ infix fun BodyMatchable.equalToJsonResource(
     return contentMatcher
 }
 
+/**
+ * Matches JSON bodies against the given JSON string.
+ *
+ * Performs semantic comparison, ignoring formatting differences.
+ *
+ * Example:
+ * ```kotlin
+ * request {
+ *     body equalToJson """{"name": "test"}"""
+ * }
+ * ```
+ *
+ * @param content The expected JSON content as a string.
+ * @return A [JsonContentMatcher] for additional configuration.
+ */
 context(builder: RequestMatcher.Builder.RequestBuilder)
 infix fun BodyMatchable.equalToJson(
     content: String
