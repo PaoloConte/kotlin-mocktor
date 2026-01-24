@@ -7,6 +7,8 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.util.date.*
 import io.ktor.utils.io.*
+import io.paoloconte.mocktor.MockEngine.INITIAL_STATE
+import io.paoloconte.mocktor.MockEngine.noMatchStatusCode
 import org.slf4j.LoggerFactory
 
 /**
@@ -232,7 +234,7 @@ object MockEngine: HttpClientEngineBase("mock-engine") {
         logger.trace("No matching handler found for: {} {}", data.method, data.url)
         val sb = StringBuilder("No matching handler found. Registered handlers:\n")
         handlers.forEachIndexed { index, handler ->
-            sb.append("${index + 1}. [${handler.method} ${handler.path}] -> ${mismatchDescriptions[index]}\n")
+            sb.append("${index + 1}. [${handler.method?.toString() ?: ""} ${handler.host?.toString() ?: ""} ${handler.path?.toString() ?: ""}] -> ${mismatchDescriptions[index]}\n")
         }
         val mismatchReport = sb.toString()
         logger.error(mismatchReport)

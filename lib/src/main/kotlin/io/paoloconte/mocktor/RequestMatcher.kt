@@ -6,19 +6,13 @@ import io.ktor.http.content.*
 import io.paoloconte.mocktor.MatchResult.Match
 import io.paoloconte.mocktor.MatchResult.Mismatch
 import io.paoloconte.mocktor.contentMatchers.ContentMatcher
-import io.paoloconte.mocktor.contentMatchers.DefaultContentMatcher
 import io.paoloconte.mocktor.contentMatchers.FormUrlEncodedContentMatcher
-import io.paoloconte.mocktor.valueMatchers.BodyMatchable
-import io.paoloconte.mocktor.valueMatchers.ContentTypesMatchable
-import io.paoloconte.mocktor.valueMatchers.HeadersMatcher
-import io.paoloconte.mocktor.valueMatchers.Matchable
-import io.paoloconte.mocktor.valueMatchers.QueryParamsMatcher
-import io.paoloconte.mocktor.valueMatchers.StringMatchable
-import io.paoloconte.mocktor.valueMatchers.ValueMatcher
+import io.paoloconte.mocktor.valueMatchers.*
 
 class RequestMatcher private constructor(
     internal val method: ValueMatcher<HttpMethod>?,
     internal val path: ValueMatcher<String>?,
+    internal val host: ValueMatcher<String>?,
     internal val matcher: ((HttpRequestData) -> Boolean)?,
     internal val requestContentType: ValueMatcher<String>?,
     internal val contentMatcher: ContentMatcher?,
@@ -78,6 +72,7 @@ class RequestMatcher private constructor(
          */
         internal fun build(): RequestMatcher = RequestMatcher(
             path = request.path.matcher,
+            host = request.host.matcher,
             method = request.method.matcher,
             matcher = request.matcher,
             contentMatcher = request.body.matcher,
@@ -103,6 +98,9 @@ class RequestMatcher private constructor(
 
             /** Matcher for the URL path. */
             val path = StringMatchable().apply { initialPath?.let { this equalTo it } }
+
+            /** Matcher for the HOST */
+            val host = StringMatchable()
 
             /** Matcher for URL query parameters. */
             val queryParams = QueryParamsMatcher()
@@ -277,6 +275,9 @@ class RequestMatcher private constructor(
         if (path != null && !path.matches(data.url.encodedPath))
             return Mismatch("Path mismatch: expected $path but was ${data.url.encodedPath}")
 
+        if (host != null && !host.matches(data.url.hostWithPortIfSpecified))
+            return Mismatch("Host mismatch: expected $host but was ${data.url.hostWithPortIfSpecified}")
+
         if (requestContentType != null && !requestContentType.matches(data.body.contentType.toString()))
             return Mismatch("Content-Type mismatch: expected $requestContentType but was ${data.body.contentType}")
 
@@ -315,6 +316,7 @@ class RequestMatcher private constructor(
         val parts = mutableListOf<String>()
         if (method != null) parts.add("method=$method")
         if (path != null) parts.add("path=$path")
+        if (host != null) parts.add("host=$host")
         if (requestHeaders.isNotEmpty()) parts.add("headers=<specified>")
         if (queryParams.isNotEmpty()) parts.add("queryParams=<specified>")
         if (contentMatcher != null) parts.add("body=<specified>")

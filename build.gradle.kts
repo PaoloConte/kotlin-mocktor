@@ -16,7 +16,7 @@ repositories {
 }
 
 group = "io.paoloconte"
-version = "2.1.1"
+version = "2.1.2"
 
 subprojects {
     group = rootProject.group

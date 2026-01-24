@@ -34,7 +34,7 @@ class DebugInfoTest {
         val body = response.bodyAsText()
         
         assertTrue(body.contains("No matching handler found"))
-        assertTrue(body.contains("1. [GET /api/users] -> Path mismatch"))
-        assertTrue(body.contains("2. [POST /api/posts] -> Method mismatch"))
+        assertTrue(body.contains("1. [GET  /api/users] -> Path mismatch"))
+        assertTrue(body.contains("2. [POST  /api/posts] -> Method mismatch"))
     }
 }

@@ -136,6 +136,34 @@ class MockEngineTest {
     }
 
     @Test
+    fun `matches host`() = runTest {
+    MockEngine.get {
+            request {
+                host equalTo "example.com"
+            }
+        }
+
+        val response = client.get("http://example.com/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `does not match host`() = runTest {
+    MockEngine.get {
+            request {
+                host equalTo "example.com"
+            }
+        }
+
+        val response = client.get("http://test.com/api/users/18482") {
+            contentType(ContentType.Application.Json)
+        }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
     fun `matches POST request`() = runTest {
         MockEngine.post {
             request {
